@@ -508,7 +508,7 @@
     },
     {
       "id": "TE-035",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "프레임리스 창과 창 제어",
@@ -518,11 +518,11 @@
       "note": "pywebview 창 제어는 v0.1에서 결함 세 건이 나왔던 자리",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-036",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "메뉴 줄과 상태 표시줄",
@@ -532,11 +532,11 @@
       "note": "팝오버가 어느 메뉴를 눌러도 같은 자리에서 열리던 결함이 v0.1에 있었다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-037",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "미리보기 탭과 고정 탭",
@@ -546,11 +546,11 @@
       "note": "미리보기 탭에서 Enter를 반복하면 고정된다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-038",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "보기 영역 가르기와 탭 이동",
@@ -560,11 +560,11 @@
       "note": "탭 이동은 FR-12의 인스턴스 유지와 함께 판정한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-039",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "조합키 열한 가지",
@@ -574,11 +574,11 @@
       "note": "Zen 모드와 초점 순환 포함. 테마 전환에는 조합키를 주지 않는다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-040",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "설정 보존",
@@ -588,11 +588,11 @@
       "note": "보존하는 것은 껍데기의 화면 상태뿐이다 (D-5)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-041",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P7",
       "title": "CLI 인자 진입점",
@@ -602,7 +602,7 @@
       "note": "인자로 탭을 여는 것은 FR-9 자리를 통해 이뤄진다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-042",

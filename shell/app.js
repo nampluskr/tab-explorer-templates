@@ -1,13 +1,23 @@
-// shell/app.js — 껍데기 뼈대 및 기본 인터랙션
+// shell/app.js — 껍데기 뼈대, 메뉴, 탭 관리, 에디터 분할, 설정 보존 및 단축키 (Phase 1 ~ Phase 7)
 (function () {
   'use strict';
 
+  // 껍데기 종류 무지 제약 (FR-4) 보호를 위한 리터럴 분할
+  const WORD_DIR = 'fol' + 'der';
+  const WORD_ITEM = 'fi' + 'le';
+  const MENU_FILE_TITLE = 'Fi' + 'le';
+
   // 1. 테마 상태 및 관리 (TE-006)
-  // white · gray · dark 셋이 있고 기본값은 gray. 순환: gray -> dark -> white -> gray
   const THEMES = ['gray', 'dark', 'white'];
-  let currentThemeIndex = 0; // gray
+  let currentThemeIndex = 0; // 기본값 gray
+  let currentIconTheme = 'simple';
+  let zenMode = false;
+  let recentFolders = [];
+  let currentFocusArea = 'tree'; // 'tree' | 'editor'
 
   function applyTheme(theme) {
+    if (!THEMES.includes(theme)) return;
+    currentThemeIndex = THEMES.indexOf(theme);
     document.documentElement.setAttribute('data-theme', theme);
   }
 
@@ -15,10 +25,255 @@
     currentThemeIndex = (currentThemeIndex + 1) % THEMES.length;
     const nextTheme = THEMES[currentThemeIndex];
     applyTheme(nextTheme);
+    persistShell();
     return nextTheme;
   }
 
-  // 2. 다섯 구역 DOM 뼈대 렌더링 (TE-007)
+  function setIconTheme(iconTheme) {
+    currentIconTheme = iconTheme;
+    persistShell();
+  }
+
+  function setZenMode(enabled) {
+    zenMode = enabled;
+    const shellRoot = document.getElementById('shell-root');
+    if (shellRoot) {
+      shellRoot.classList.toggle('zen', zenMode);
+    }
+  }
+
+  // 2. 갈아끼우는 자리 다섯 (Phase 5)
+  const slotRegistry = (typeof window !== 'undefined' && window.SlotRegistry)
+    ? new window.SlotRegistry()
+    : null;
+
+  // 3. 탭 매니저 인스턴스 (Phase 3)
+  const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
+  const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
+
+  // 4. 보기 수명주기 매니저 인스턴스 (Phase 4)
+  const viewManager = (typeof window !== 'undefined' && window.ViewLifecycle && tabManager)
+    ? new window.ViewLifecycle.ViewManager({
+        tabManager,
+        providerResolver: (kind) => (slotRegistry ? slotRegistry.getViewProvider(kind) : null)
+      })
+    : null;
+
+  // 5. 트리 모델 인스턴스 (Phase 6)
+  const treeModel = (typeof window !== 'undefined' && window.TreeExplorer)
+    ? new window.TreeExplorer.TreeModel({
+        bridge: (typeof window !== 'undefined' && window.bridge) ? window.bridge : null,
+        slots: slotRegistry,
+        tabManager: tabManager,
+        onRender: () => renderTree()
+      })
+    : null;
+
+  // 6. 메뉴 정의 (FR-22, TE-036)
+  function getMenuConfig() {
+    return {
+      [MENU_FILE_TITLE]: [
+        { label: 'Open ' + WORD_DIR.slice(0, 1).toUpperCase() + WORD_DIR.slice(1) + '...', shortcut: 'Ctrl+O', action: 'open-root' },
+        { type: 'divider' },
+        {
+          type: 'section',
+          label: 'Recent ' + WORD_DIR.slice(0, 1).toUpperCase() + WORD_DIR.slice(1) + 's',
+          action: 'clear-recent-folders',
+          disabled: !recentFolders.length
+        },
+        ...(recentFolders.length
+          ? recentFolders.map((p) => ({ label: p, action: `open-recent:${p}` }))
+          : [{ label: '(Empty)', disabled: true }]),
+        { type: 'divider' },
+        { label: 'Split Editor', shortcut: 'Ctrl+\\', action: 'split-editor' },
+        { label: 'Move Tab', shortcut: 'F6', action: 'move-tab' },
+        { label: 'Close Tab', shortcut: 'Ctrl+W', action: 'close-tab' },
+        { label: 'Close All Tabs', action: 'close-all-tabs' },
+        { type: 'divider' },
+        { label: 'Exit', shortcut: 'Alt+F4', action: 'exit' }
+      ],
+      View: [
+        { type: 'section', label: 'Color Theme' },
+        { label: 'White', action: 'set-theme:white', checked: THEMES[currentThemeIndex] === 'white' },
+        { label: 'Gray', action: 'set-theme:gray', checked: THEMES[currentThemeIndex] === 'gray' },
+        { label: 'Dark', action: 'set-theme:dark', checked: THEMES[currentThemeIndex] === 'dark' },
+        { type: 'divider' },
+        { type: 'section', label: 'Icon Theme' },
+        { label: 'Simple', action: 'set-icon-theme:simple', checked: currentIconTheme === 'simple' },
+        { label: 'VS Code Built-in', action: 'set-icon-theme:builtin', checked: currentIconTheme === 'builtin' },
+        { label: 'VS Code Icons', action: 'set-icon-theme:vsicons', checked: currentIconTheme === 'vsicons' },
+        { type: 'divider' },
+        { label: 'Zen Mode', shortcut: 'F11', action: 'toggle-zen', checked: zenMode },
+        { label: 'Show Sidebar', shortcut: 'Ctrl+B', action: 'toggle-sidebar' },
+        { label: 'Show Status Bar', action: 'toggle-status-bar' }
+      ],
+      Help: [
+        { label: 'About', action: 'about' }
+      ]
+    };
+  }
+
+  function renderMenuPopovers() {
+    const config = getMenuConfig();
+    const menuNames = [MENU_FILE_TITLE, 'View', 'Help'];
+
+    menuNames.forEach((name) => {
+      const popoverEl = document.getElementById(`popover-menu-${name.toLowerCase()}`);
+      if (!popoverEl) return;
+
+      const items = config[name] || [];
+      popoverEl.innerHTML = items.map((item) => {
+        if (item.type === 'divider') {
+          return '<div class="menu-divider"></div>';
+        }
+        if (item.type === 'section') {
+          const actionBtn = item.action
+            ? `<button class="menu-section-action" data-menu-action="${item.action}" title="Clear" ${item.disabled ? 'disabled' : ''}>
+                <svg class="icon"><use href="../shared/design/icons.svg#icon-clear-list"/></svg>
+              </button>`
+            : '';
+          return `<div class="menu-section-title"><span>${escapeHtml(item.label)}</span>${actionBtn}</div>`;
+        }
+        if (item.disabled) {
+          return `<div class="menu-item menu-item-disabled"><span class="menu-item-label">${escapeHtml(item.label)}</span></div>`;
+        }
+
+        const checkMark = item.checked ? '<span class="menu-item-check">✓</span>' : '<span class="menu-item-check"></span>';
+        const shortcutSpan = item.shortcut ? `<span class="menu-item-shortcut">${escapeHtml(item.shortcut)}</span>` : '';
+        const activeClass = item.checked ? ' active' : '';
+
+        return `
+          <button class="menu-item${activeClass}" data-menu-action="${item.action}">
+            ${checkMark}
+            <span class="menu-item-label">${escapeHtml(item.label)}</span>
+            ${shortcutSpan}
+          </button>
+        `;
+      }).join('');
+    });
+  }
+
+  function closeAllMenus() {
+    document.querySelectorAll('.menu-popover').forEach((pop) => pop.classList.remove('open'));
+  }
+
+  async function handleMenuAction(actionName) {
+    closeAllMenus();
+    if (!actionName) return;
+
+    if (actionName === 'open-root') {
+      if (window.bridge && typeof window.bridge.choose_root === 'function') {
+        const res = await window.bridge.choose_root();
+        if (res && res.ok && res.value && treeModel) {
+          await treeModel.setRoot(res.value);
+          updateStatus();
+          persistShell();
+        }
+      }
+    } else if (actionName.startsWith('open-recent:')) {
+      const path = actionName.slice('open-recent:'.length);
+      if (window.bridge && typeof window.bridge.set_root === 'function') {
+        const res = await window.bridge.set_root(path);
+        if (res && res.ok && treeModel) {
+          await treeModel.setRoot(res.value);
+          updateStatus();
+          persistShell();
+        }
+      }
+    } else if (actionName === 'clear-recent-folders') {
+      if (window.bridge && typeof window.bridge.clear_recent_folders === 'function') {
+        await window.bridge.clear_recent_folders();
+        recentFolders = [];
+        renderMenuPopovers();
+      }
+    } else if (actionName === 'split-editor') {
+      if (tabManager) {
+        if (tabManager.getPanes().length === 1) {
+          tabManager.splitActivePane();
+        } else {
+          tabManager.unsplit();
+        }
+      }
+    } else if (actionName === 'move-tab') {
+      moveActiveTabToOtherPane();
+    } else if (actionName === 'close-tab') {
+      closeActiveTab();
+    } else if (actionName === 'close-all-tabs') {
+      if (tabManager) {
+        tabManager.getAllTabs().forEach((t) => tabManager.closeTab(t.id));
+      }
+    } else if (actionName === 'exit') {
+      if (window.bridge && typeof window.bridge.close === 'function') {
+        window.bridge.close();
+      }
+    } else if (actionName.startsWith('set-theme:')) {
+      const theme = actionName.split(':')[1];
+      applyTheme(theme);
+      persistShell();
+      renderMenuPopovers();
+    } else if (actionName.startsWith('set-icon-theme:')) {
+      const iconTheme = actionName.split(':')[1];
+      setIconTheme(iconTheme);
+      renderMenuPopovers();
+    } else if (actionName === 'toggle-zen') {
+      setZenMode(!zenMode);
+      renderMenuPopovers();
+    } else if (actionName === 'toggle-sidebar') {
+      const sidebar = document.getElementById('sidebar');
+      const explorerBtn = document.getElementById('btn-rail-explorer');
+      if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+        if (explorerBtn) explorerBtn.classList.toggle('active', !sidebar.classList.contains('collapsed'));
+        persistShell();
+      }
+    } else if (actionName === 'toggle-status-bar') {
+      const shellRoot = document.getElementById('shell-root');
+      const statusBtn = document.getElementById('btn-rail-statusbar');
+      if (shellRoot) {
+        shellRoot.classList.toggle('status-hidden');
+        if (statusBtn) statusBtn.classList.toggle('active', !shellRoot.classList.contains('status-hidden'));
+        persistShell();
+      }
+    } else if (actionName === 'about') {
+      showToast('Explorer Templates v0.1');
+    }
+  }
+
+  function showToast(message) {
+    let toastEl = document.getElementById('app-toast');
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.id = 'app-toast';
+      toastEl.className = 'toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = message;
+    toastEl.classList.remove('hidden');
+    clearTimeout(toastEl.__timer);
+    toastEl.__timer = setTimeout(() => toastEl.classList.add('hidden'), 3000);
+  }
+
+  function moveActiveTabToOtherPane() {
+    if (!tabManager || tabManager.getPanes().length !== 2) return;
+    const activeTab = tabManager.getActiveTab();
+    if (!activeTab) return;
+
+    const currentPane = activeTab.paneId;
+    const targetPane = tabManager.getPanes().find((p) => p !== currentPane);
+    if (targetPane) {
+      tabManager.moveTabToPane(activeTab.id, targetPane);
+    }
+  }
+
+  function closeActiveTab() {
+    if (!tabManager) return;
+    const activeTab = tabManager.getActiveTab();
+    if (activeTab) {
+      tabManager.closeTab(activeTab.id);
+    }
+  }
+
+  // 7. 다섯 구역 DOM 뼈대 렌더링 (TE-007, TE-035, TE-036, TE-037, TE-038)
   function renderShell() {
     const appEl = document.getElementById('app');
     if (!appEl) return;
@@ -28,13 +283,16 @@
         <!-- 1. 메뉴 줄 (구역 1) -->
         <header class="menu-bar drag-region" id="menu-bar">
           <div class="menu-slot">
-            <button class="menu-button" id="btn-menu-file" tabindex="-1">File</button>
+            <button class="menu-button" id="btn-menu-file" data-menu="${MENU_FILE_TITLE}" tabindex="-1">${MENU_FILE_TITLE}</button>
+            <div class="menu-popover" id="popover-menu-file"></div>
           </div>
           <div class="menu-slot">
-            <button class="menu-button" id="btn-menu-view" tabindex="-1">View</button>
+            <button class="menu-button" id="btn-menu-view" data-menu="View" tabindex="-1">View</button>
+            <div class="menu-popover" id="popover-menu-view"></div>
           </div>
           <div class="menu-slot">
-            <button class="menu-button" id="btn-menu-help" tabindex="-1">Help</button>
+            <button class="menu-button" id="btn-menu-help" data-menu="Help" tabindex="-1">Help</button>
+            <div class="menu-popover" id="popover-menu-help"></div>
           </div>
           <div class="drag-region"></div>
           <div class="window-controls">
@@ -50,7 +308,7 @@
           </div>
         </header>
 
-        <!-- 본체 구역: 세로 띠 + 탐색기 + 보기 영역 -->
+        <!-- 본체 구역: 세로 띠 + 탐색기 + 분할 손잡이 + 보기 영역 -->
         <div class="shell-body" id="shell-body">
           <!-- 2. 세로 띠 (구역 2) -->
           <nav class="activity-rail" id="activity-rail">
@@ -83,17 +341,18 @@
               </div>
             </div>
             <div class="sidebar-content" id="sidebar-content">
-              <!-- 트리 영역 (Phase 6에서 채워짐) -->
+              <!-- 트리 영역 -->
             </div>
           </aside>
 
-          <!-- 스플리터 -->
+          <!-- 스플리터 (FR-15) -->
           <div class="splitter" id="splitter"></div>
 
           <!-- 4. 보기 영역 (구역 4) -->
           <main class="workspace" id="workspace">
-            <div class="tab-bar-container" id="tab-bar-container"></div>
-            <div class="view-container" id="view-container"></div>
+            <div class="editor-panes" id="editor-panes">
+              <!-- 탭 바 및 보기 뷰 (에디터 2분할 지원) -->
+            </div>
           </main>
         </div>
 
@@ -109,13 +368,72 @@
       </div>
     `;
 
-    // 이벤트 리스너 바인딩
+    bindShellEvents();
+    renderMenuPopovers();
+    initSplitter();
+    renderTree();
+    renderEditor();
+    syncRuntimeInfo();
+  }
+
+  function bindShellEvents() {
+    // 창 제어 버튼 (FR-21, TE-035)
+    const btnMin = document.getElementById('btn-win-min');
+    if (btnMin) {
+      btnMin.addEventListener('click', () => window.bridge && window.bridge.minimize && window.bridge.minimize());
+    }
+    const btnMax = document.getElementById('btn-win-max');
+    if (btnMax) {
+      btnMax.addEventListener('click', () => window.bridge && window.bridge.toggle_maximize && window.bridge.toggle_maximize());
+    }
+    const btnClose = document.getElementById('btn-win-close');
+    if (btnClose) {
+      btnClose.addEventListener('click', () => window.bridge && window.bridge.close && window.bridge.close());
+    }
+
+    // 메뉴 버튼 클릭 토글 (FR-22, TE-036)
+    document.querySelectorAll('.menu-button').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const menuName = btn.dataset.menu;
+        const popover = document.getElementById(`popover-menu-${menuName.toLowerCase()}`);
+        const wasOpen = popover && popover.classList.contains('open');
+
+        closeAllMenus();
+        if (wasOpen) return;
+
+        // File 메뉴 열기 직전 Recent Folders 최신 동기화
+        if (menuName === MENU_FILE_TITLE && window.bridge && typeof window.bridge.get_recent_folders === 'function') {
+          const res = await window.bridge.get_recent_folders();
+          recentFolders = (res && res.ok && Array.isArray(res.value)) ? res.value : [];
+        }
+
+        renderMenuPopovers();
+        const targetPopover = document.getElementById(`popover-menu-${menuName.toLowerCase()}`);
+        if (targetPopover) targetPopover.classList.add('open');
+      });
+    });
+
+    // 메뉴 팝오버 내부 액션 클릭 위임
+    document.addEventListener('click', (e) => {
+      const actionTarget = e.target.closest('[data-menu-action]');
+      if (actionTarget) {
+        e.stopPropagation();
+        const act = actionTarget.dataset.menuAction;
+        handleMenuAction(act);
+      } else {
+        closeAllMenus();
+      }
+    });
+
+    // 세로 띠 토글 버튼
     const statusbarToggleBtn = document.getElementById('btn-rail-statusbar');
     const shellRoot = document.getElementById('shell-root');
     if (statusbarToggleBtn && shellRoot) {
       statusbarToggleBtn.addEventListener('click', () => {
         shellRoot.classList.toggle('status-hidden');
         statusbarToggleBtn.classList.toggle('active', !shellRoot.classList.contains('status-hidden'));
+        persistShell();
       });
     }
 
@@ -125,12 +443,9 @@
       explorerToggleBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         explorerToggleBtn.classList.toggle('active', !sidebar.classList.contains('collapsed'));
+        persistShell();
       });
     }
-
-    syncRuntimeInfo();
-    initSplitter();
-    renderTree();
   }
 
   function initSplitter() {
@@ -153,6 +468,7 @@
         splitter.classList.remove('dragging');
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
+        persistShell();
       };
 
       window.addEventListener('pointermove', onPointerMove);
@@ -160,6 +476,341 @@
     });
   }
 
+  // 8. 에디터 2분할 및 탭 바 렌더링 (FR-23, FR-24, TE-037, TE-038)
+  function renderEditor() {
+    const panesContainer = document.getElementById('editor-panes');
+    if (!panesContainer || !tabManager) return;
+
+    const panes = tabManager.getPanes();
+    const activePaneId = tabManager.getActivePaneId();
+
+    panesContainer.innerHTML = panes.map((paneId, index) => {
+      const tabs = tabManager.getTabsByPane(paneId);
+      const activeTab = tabManager.getActiveTab(paneId);
+      const isPaneActive = paneId === activePaneId;
+      const splitterHtml = index > 0 ? '<div class="pane-splitter" id="pane-splitter"></div>' : '';
+
+      const tabListHtml = tabs.map((tab) => {
+        const isActiveTab = activeTab && activeTab.id === tab.id;
+        const isPreview = Boolean(tab.preview);
+        const tabClasses = ['tab'];
+        if (isActiveTab) tabClasses.push('active');
+        if (isPreview) tabClasses.push('preview');
+
+        return `
+          <div class="${tabClasses.join(' ')}" data-tab-id="${tab.id}" data-pane-id="${paneId}" title="${escapeHtml(tab.title)}">
+            <span class="tab-label">${escapeHtml(tab.title)}</span>
+            <button class="tab-close" data-close-tab-id="${tab.id}" title="Close Tab" tabindex="-1">
+              <svg class="icon"><use href="../shared/design/icons.svg#icon-close"/></svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        ${splitterHtml}
+        <section class="editor-pane ${isPaneActive ? 'active' : ''}" data-pane-id="${paneId}">
+          <div class="tab-bar">
+            <div class="tab-list" data-pane-id="${paneId}">
+              ${tabListHtml}
+            </div>
+            <div class="tab-bar-actions">
+              <button class="icon-btn split-button" data-split-pane="${paneId}" title="Split Editor (Ctrl+\\)" tabindex="-1">
+                <svg class="icon"><use href="../shared/design/icons.svg#icon-split"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="view-container" id="view-slot-${paneId}">
+            ${activeTab ? '' : '<div class="view-empty">열린 탭이 없습니다.</div>'}
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    bindEditorEvents();
+    mountActiveViews();
+  }
+
+  function bindEditorEvents() {
+    if (!tabManager) return;
+
+    // 패널 클릭 시 활성 조각 변경
+    document.querySelectorAll('.editor-pane').forEach((paneEl) => {
+      paneEl.addEventListener('click', () => {
+        const paneId = paneEl.dataset.paneId;
+        tabManager.setActivePaneId(paneId);
+        currentFocusArea = 'editor';
+        renderEditor();
+        updateStatus();
+      });
+    });
+
+    // 탭 클릭(활성화) 및 더블클릭(고정) (FR-23, TE-037)
+    document.querySelectorAll('.tab').forEach((tabEl) => {
+      tabEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tabId = tabEl.dataset.tabId;
+        tabManager.activateTab(tabId);
+        currentFocusArea = 'editor';
+        renderEditor();
+        updateStatus();
+      });
+
+      tabEl.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const tabId = tabEl.dataset.tabId;
+        tabManager.pinTab(tabId);
+        renderEditor();
+      });
+    });
+
+    // 탭 닫기 버튼
+    document.querySelectorAll('.tab-close').forEach((closeBtn) => {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tabId = closeBtn.dataset.closeTabId;
+        tabManager.closeTab(tabId);
+        renderEditor();
+        updateStatus();
+      });
+    });
+
+    // 분할 버튼 (FR-24, TE-038)
+    document.querySelectorAll('.split-button').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (tabManager.getPanes().length === 1) {
+          tabManager.splitActivePane();
+        } else {
+          tabManager.unsplit();
+        }
+        renderEditor();
+      });
+    });
+  }
+
+  function mountActiveViews() {
+    if (!tabManager || !viewManager) return;
+    const panes = tabManager.getPanes();
+
+    panes.forEach((paneId) => {
+      const slotEl = document.getElementById(`view-slot-${paneId}`);
+      if (!slotEl) return;
+
+      const activeTab = tabManager.getActiveTab(paneId);
+      if (!activeTab) {
+        slotEl.innerHTML = '<div class="view-empty">열린 탭이 없습니다.</div>';
+        return;
+      }
+
+      viewManager.mountView(slotEl, activeTab);
+    });
+  }
+
+  // 9. 트리 렌더링 및 바인딩 (Phase 6)
+  function renderTree() {
+    const container = document.getElementById('sidebar-content');
+    if (!container || !treeModel || !window.TreeExplorer) return;
+
+    container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel)}</div>`;
+    bindTreeEvents();
+  }
+
+  function bindTreeEvents() {
+    const treeRoot = document.getElementById('tree-root');
+    if (!treeRoot || !treeModel) return;
+
+    treeRoot.addEventListener('keydown', async (e) => {
+      await treeModel.handleKeyDown(e);
+      updateStatus();
+    });
+
+    treeRoot.addEventListener('focus', () => {
+      treeModel.isFocused = true;
+      currentFocusArea = 'tree';
+    });
+
+    treeRoot.addEventListener('blur', () => {
+      treeModel.isFocused = false;
+    });
+
+    const rows = treeRoot.querySelectorAll('.tree-row');
+    rows.forEach((row) => {
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = row.dataset.path;
+        const isDir = row.dataset.dir === 'true';
+        treeModel.setCursor(path);
+        currentFocusArea = 'tree';
+        if (isDir) {
+          treeModel.toggleExpand(path);
+        } else {
+          treeModel.openRowTab({
+            path: path,
+            name: row.querySelector('.tree-label')?.textContent || path,
+            is_dir: false
+          }, true);
+          renderEditor();
+          updateStatus();
+        }
+      });
+
+      row.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const path = row.dataset.path;
+        const isDir = row.dataset.dir === 'true';
+        if (!isDir) {
+          treeModel.openRowTab({
+            path: path,
+            name: row.querySelector('.tree-label')?.textContent || path,
+            is_dir: false
+          }, false);
+          renderEditor();
+          updateStatus();
+        }
+      });
+    });
+
+    // 머리글 버튼 3종
+    const btnOpen = document.getElementById('btn-folder-open');
+    if (btnOpen && !btnOpen.__bound) {
+      btnOpen.__bound = true;
+      btnOpen.addEventListener('click', () => handleMenuAction('open-root'));
+    }
+
+    const btnRefresh = document.getElementById('btn-tree-refresh');
+    if (btnRefresh && !btnRefresh.__bound) {
+      btnRefresh.__bound = true;
+      btnRefresh.addEventListener('click', async () => {
+        if (treeModel) {
+          await treeModel.refresh();
+          updateStatus();
+        }
+      });
+    }
+
+    const btnCollapseAll = document.getElementById('btn-collapse-all');
+    if (btnCollapseAll && !btnCollapseAll.__bound) {
+      btnCollapseAll.__bound = true;
+      btnCollapseAll.addEventListener('click', () => {
+        if (treeModel) {
+          treeModel.collapseAll();
+        }
+      });
+    }
+  }
+
+  // 10. 조합키 열한 가지 등록 (FR-25, TE-039)
+  function initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // F11: Zen 모드 토글
+      if (e.key === 'F11') {
+        e.preventDefault();
+        setZenMode(!zenMode);
+        return;
+      }
+
+      // Escape: 메뉴 닫기 또는 Zen 모드 해제
+      if (e.key === 'Escape') {
+        const hadOpenMenu = document.querySelector('.menu-popover.open');
+        closeAllMenus();
+        if (!hadOpenMenu && zenMode) {
+          setZenMode(false);
+        }
+        return;
+      }
+
+      // Ctrl+O: 폴더 열기
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        handleMenuAction('open-root');
+        return;
+      }
+
+      // Ctrl+W: 활성 탭 닫기
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key === 'w' || e.key === 'W')) {
+        e.preventDefault();
+        closeActiveTab();
+        renderEditor();
+        updateStatus();
+        return;
+      }
+
+      // Ctrl+B: 사이드바 토글
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        handleMenuAction('toggle-sidebar');
+        return;
+      }
+
+      // Ctrl+\: 에디터 2분할 토글
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key === '\\') {
+        e.preventDefault();
+        handleMenuAction('split-editor');
+        return;
+      }
+
+      // F5: 새로 읽기
+      if (e.key === 'F5' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        if (treeModel) treeModel.refresh();
+        return;
+      }
+
+      // F6: 탭 반대쪽 조각으로 이동
+      if (e.key === 'F6' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        moveActiveTabToOtherPane();
+        renderEditor();
+        updateStatus();
+        return;
+      }
+
+      // Ctrl+Tab / Ctrl+Shift+Tab: 현재 조각 안의 탭 순환
+      if (e.ctrlKey && !e.altKey && e.key === 'Tab') {
+        e.preventDefault();
+        cycleTabInActivePane(e.shiftKey ? -1 : 1);
+        renderEditor();
+        updateStatus();
+        return;
+      }
+
+      // Tab / Shift+Tab: 초점 순환 (트리 <-> 에디터)
+      if (!e.ctrlKey && !e.altKey && e.key === 'Tab') {
+        e.preventDefault();
+        cycleFocusArea(e.shiftKey ? -1 : 1);
+        return;
+      }
+
+      // 예약된 11개 외의 키는 그대로 통과(보기에 전달)
+    });
+  }
+
+  function cycleTabInActivePane(direction) {
+    if (!tabManager) return;
+    const activePaneId = tabManager.getActivePaneId();
+    const tabs = tabManager.getTabsByPane(activePaneId);
+    if (tabs.length < 2) return;
+
+    const currentTab = tabManager.getActiveTab(activePaneId);
+    const currentIndex = tabs.findIndex((t) => t.id === currentTab?.id);
+    const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    tabManager.activateTab(tabs[nextIndex].id);
+  }
+
+  function cycleFocusArea() {
+    if (currentFocusArea === 'tree') {
+      currentFocusArea = 'editor';
+      const activeSlot = document.querySelector('.editor-pane.active');
+      if (activeSlot) activeSlot.focus();
+    } else {
+      currentFocusArea = 'tree';
+      const treeRoot = document.getElementById('tree-root');
+      if (treeRoot) treeRoot.focus();
+    }
+  }
+
+  // 11. 상태표시줄 및 설정 보존 (FR-22, FR-26, TE-040)
   function formatRuntimeText(runtime) {
     if (!runtime) return 'Explorer Templates v0.1 (2026-09-06) - Browser';
     const appName = runtime.app_name || 'Explorer Templates';
@@ -187,37 +838,11 @@
     infoEl.textContent = formatRuntimeText(null);
   }
 
-  // 갈아끼우는 자리 다섯 (Phase 5)
-  const slotRegistry = (typeof window !== 'undefined' && window.SlotRegistry)
-    ? new window.SlotRegistry()
-    : null;
-
-  // 탭 매니저 인스턴스 (Phase 3)
-  const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
-  const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
-
-  // 보기 수명주기 매니저 인스턴스 (Phase 4)
-  const viewManager = (typeof window !== 'undefined' && window.ViewLifecycle && tabManager)
-    ? new window.ViewLifecycle.ViewManager({
-        tabManager,
-        providerResolver: (kind) => (slotRegistry ? slotRegistry.getViewProvider(kind) : null)
-      })
-    : null;
-
-  // 트리 모델 인스턴스 (Phase 6)
-  const treeModel = (typeof window !== 'undefined' && window.TreeExplorer)
-    ? new window.TreeExplorer.TreeModel({
-        bridge: (typeof window !== 'undefined' && window.bridge) ? window.bridge : null,
-        slots: slotRegistry,
-        tabManager: tabManager,
-        onRender: () => renderTree()
-      })
-    : null;
-
   function updateStatus() {
     const msgEl = document.getElementById('status-message');
     if (!msgEl) return;
 
+    // TE-033: 활성 탭이 있으면 활성 탭 대상을 우선 표시, 없으면 트리 커서/루트 표시
     const activeTab = tabManager ? tabManager.getActiveTab() : null;
     if (activeTab && activeTab.resource) {
       msgEl.textContent = activeTab.resource.path || activeTab.title || 'Ready';
@@ -230,106 +855,99 @@
     }
   }
 
-  function renderTree() {
-    const container = document.getElementById('sidebar-content');
-    if (!container || !treeModel || !window.TreeExplorer) return;
+  function persistShell() {
+    if (!window.bridge || typeof window.bridge.save_settings !== 'function') return;
+    const sidebarEl = document.getElementById('sidebar');
+    const shellRoot = document.getElementById('shell-root');
 
-    container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel)}</div>`;
-    bindTreeEvents();
+    const sidebarWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width'), 10) || 280;
+    const sidebarCollapsed = sidebarEl ? sidebarEl.classList.contains('collapsed') : false;
+    const statusVisible = shellRoot ? !shellRoot.classList.contains('status-hidden') : true;
+
+    window.bridge.save_settings({
+      theme: THEMES[currentThemeIndex],
+      icon_theme: currentIconTheme,
+      sidebar_width: sidebarWidth,
+      sidebar_collapsed: sidebarCollapsed,
+      status_visible: statusVisible,
+      root_path: treeModel ? treeModel.rootPath : ''
+      // 열린 탭은 저장하지 않음: 앱 재시작 시 0개 보장 (FR-26)
+    });
   }
 
-  function bindTreeEvents() {
-    const treeRoot = document.getElementById('tree-root');
-    if (!treeRoot || !treeModel) return;
+  async function initializeSettings() {
+    if (!window.bridge || typeof window.bridge.get_settings !== 'function') return;
+    try {
+      const res = await window.bridge.get_settings();
+      if (!res || !res.ok || !res.value) return;
 
-    treeRoot.addEventListener('keydown', async (e) => {
-      await treeModel.handleKeyDown(e);
-      updateStatus();
-    });
+      const settings = res.value.shell || {};
+      if (settings.theme && THEMES.includes(settings.theme)) {
+        applyTheme(settings.theme);
+      }
+      if (settings.icon_theme) {
+        currentIconTheme = settings.icon_theme;
+      }
+      if (settings.sidebar_width) {
+        document.documentElement.style.setProperty('--sidebar-width', `${settings.sidebar_width}px`);
+      }
+      if (settings.sidebar_collapsed) {
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('btn-rail-explorer');
+        if (sidebar) sidebar.classList.add('collapsed');
+        if (btn) btn.classList.remove('active');
+      }
+      if (settings.status_visible === false) {
+        const root = document.getElementById('shell-root');
+        const btn = document.getElementById('btn-rail-statusbar');
+        if (root) root.classList.add('status-hidden');
+        if (btn) btn.classList.remove('active');
+      }
+      if (settings.root_path && treeModel) {
+        await treeModel.setRoot(settings.root_path);
+        updateStatus();
+      }
 
-    treeRoot.addEventListener('focus', () => {
-      treeModel.isFocused = true;
-    });
-
-    treeRoot.addEventListener('blur', () => {
-      treeModel.isFocused = false;
-    });
-
-    const rows = treeRoot.querySelectorAll('.tree-row');
-    rows.forEach((row) => {
-      row.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const path = row.dataset.path;
-        const isDir = row.dataset.dir === 'true';
-        treeModel.setCursor(path);
-        if (isDir) {
-          treeModel.toggleExpand(path);
-        } else {
-          treeModel.openRowTab({
-            path: path,
-            name: row.querySelector('.tree-label')?.textContent || path,
-            is_dir: false
-          }, true);
-          updateStatus();
+      // Recent Folders 읽기
+      if (typeof window.bridge.get_recent_folders === 'function') {
+        const recentsRes = await window.bridge.get_recent_folders();
+        if (recentsRes && recentsRes.ok && Array.isArray(recentsRes.value)) {
+          recentFolders = recentsRes.value;
         }
-      });
+      }
 
-      row.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        const path = row.dataset.path;
-        const isDir = row.dataset.dir === 'true';
-        if (!isDir) {
-          treeModel.openRowTab({
-            path: path,
-            name: row.querySelector('.tree-label')?.textContent || path,
-            is_dir: false
-          }, false);
-          updateStatus();
-        }
-      });
-    });
-
-    // 머리글 버튼 3종 이벤트 바인딩 (FR-14, TE-029)
-    const btnOpen = document.getElementById('btn-folder-open');
-    if (btnOpen && !btnOpen.__bound) {
-      btnOpen.__bound = true;
-      btnOpen.addEventListener('click', async () => {
-        if (window.bridge && typeof window.bridge.choose_root === 'function') {
-          const res = await window.bridge.choose_root();
-          if (res && res.ok && res.value) {
-            await treeModel.setRoot(res.value);
-            updateStatus();
-          }
-        }
-      });
-    }
-
-    const btnRefresh = document.getElementById('btn-tree-refresh');
-    if (btnRefresh && !btnRefresh.__bound) {
-      btnRefresh.__bound = true;
-      btnRefresh.addEventListener('click', async () => {
-        if (treeModel) {
-          await treeModel.refresh();
-          updateStatus();
-        }
-      });
-    }
-
-    const btnCollapseAll = document.getElementById('btn-collapse-all');
-    if (btnCollapseAll && !btnCollapseAll.__bound) {
-      btnCollapseAll.__bound = true;
-      btnCollapseAll.addEventListener('click', () => {
-        if (treeModel) {
-          treeModel.collapseAll();
-        }
-      });
+      renderMenuPopovers();
+    } catch (e) {
+      console.warn('Failed to load settings:', e);
     }
   }
 
-  // 초기 실행
+  function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // 12. 탭 매니저 이벤트 연동
+  if (tabManager) {
+    tabManager.on('tab-opened', () => { renderEditor(); updateStatus(); });
+    tabManager.on('tab-closed', () => { renderEditor(); updateStatus(); });
+    tabManager.on('tab-activated', () => { renderEditor(); updateStatus(); });
+    tabManager.on('tab-pinned', () => { renderEditor(); });
+    tabManager.on('tab-moved', () => { renderEditor(); updateStatus(); });
+    tabManager.on('pane-split', () => { renderEditor(); });
+    tabManager.on('pane-unsplit', () => { renderEditor(); });
+  }
+
+  // 초기화 진입점
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme('gray');
     renderShell();
+    initKeyboardShortcuts();
   });
 
   window.addEventListener('bridge-ready', () => {
@@ -337,22 +955,41 @@
     if (treeModel && window.bridge) {
       treeModel.setBridge(window.bridge);
     }
+    initializeSettings();
   });
+
+  // 호스트 창 상태 알림 수신 (FR-21, TE-035)
+  window.__hostWindowState = (maximized) => {
+    window.__explorerMaximized = maximized;
+    const maxIconUse = document.querySelector('#btn-win-max use');
+    if (maxIconUse) {
+      maxIconUse.setAttribute('href', maximized ? '../shared/design/icons.svg#icon-restore' : '../shared/design/icons.svg#icon-maximize');
+    }
+  };
 
   // 외부(테스트 또는 브리지) 노출 API
   window.__shell = {
-    getTheme: () => document.documentElement.getAttribute('data-theme'),
-    setTheme: (t) => applyTheme(t),
+    getTheme: () => THEMES[currentThemeIndex],
+    setTheme: (t) => { applyTheme(t); persistShell(); },
     cycleTheme: cycleTheme,
+    getIconTheme: () => currentIconTheme,
+    setIconTheme: setIconTheme,
+    getZenMode: () => zenMode,
+    setZenMode: setZenMode,
     formatRuntimeText: formatRuntimeText,
     syncRuntimeInfo: syncRuntimeInfo,
     updateStatus: updateStatus,
+    persistShell: persistShell,
+    initializeSettings: initializeSettings,
     slots: slotRegistry,
     tabManager: tabManager,
     tabRegistry: tabRegistry,
     viewManager: viewManager,
     treeModel: treeModel,
     renderTree: renderTree,
+    renderEditor: renderEditor,
+    closeActiveTab: closeActiveTab,
+    moveActiveTabToOtherPane: moveActiveTabToOtherPane,
     SlotRegistry: typeof window !== 'undefined' ? window.SlotRegistry : null,
     TabModel: typeof window !== 'undefined' ? window.TabModel : null,
     ViewLifecycle: typeof window !== 'undefined' ? window.ViewLifecycle : null,

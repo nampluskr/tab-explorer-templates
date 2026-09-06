@@ -230,6 +230,14 @@
         }
       }
 
+      // 미리보기 탭 단일 유지 정책 (FR-23): 패널마다 미리보기 탭은 최대 1개이며, 새 미리보기는 기존 미리보기를 대체
+      if (preview && !pinned) {
+        const existingPreview = this.getTabsByPane(targetPaneId).find((t) => t.preview && !t.pinned);
+        if (existingPreview) {
+          this.closeTab(existingPreview.id);
+        }
+      }
+
       // 새 탭 생성: tab.id는 리소스 주소와 완전히 분리된 고유값 (FR-2)
       const newTabId = generateTabId();
       const tab = createTab({
@@ -294,6 +302,16 @@
         nextActiveTab = this.getActiveTab(paneId);
       }
 
+      // 조각의 탭을 모두 닫으면 가르기가 풀린다 (FR-24)
+      if (this._panes.length === 2) {
+        const remainingInClosedPane = this.getTabsByPane(paneId);
+        if (remainingInClosedPane.length === 0) {
+          const otherPaneId = this._panes.find((p) => p !== paneId);
+          this._panes = [otherPaneId];
+          this._activePaneId = otherPaneId;
+        }
+      }
+
       this._emit('tab-closed', { tab, nextActiveTab });
       return { closedTab: tab, nextActiveTab };
     }
@@ -320,7 +338,54 @@
       this._activeTabIdByPane.set(targetPaneId, tab.id);
       this._activePaneId = targetPaneId;
 
+      // 이동 후 소스 조각이 비게 되면 가르기가 풀린다 (FR-24)
+      if (this._panes.length === 2) {
+        const remainingInSource = this.getTabsByPane(sourcePaneId);
+        if (remainingInSource.length === 0) {
+          this._panes = [targetPaneId];
+          this._activePaneId = targetPaneId;
+        }
+      }
+
       this._emit('tab-moved', { tab, sourcePaneId, targetPaneId });
+      return true;
+    }
+
+    splitActivePane() {
+      // 셋 이상으로 갈리지 않는다 (FR-24)
+      if (this._panes.length >= 2) return false;
+      const currentActive = this.getActiveTab();
+      if (!currentActive) return false;
+
+      const newPaneId = this._panes.includes('pane-1') ? 'pane-2' : 'pane-1';
+      this._panes.push(newPaneId);
+      this._activeTabIdByPane.set(newPaneId, null);
+
+      this.openTab({
+        kind: currentActive.kind,
+        title: currentActive.title,
+        resource: currentActive.resource,
+        paneId: newPaneId,
+        preview: currentActive.preview,
+        pinned: currentActive.pinned
+      });
+      this._activePaneId = newPaneId;
+      this._emit('pane-split', { newPaneId });
+      return true;
+    }
+
+    unsplit(keepPaneId = this._panes[0]) {
+      if (this._panes.length <= 1) return false;
+      const otherPaneId = this._panes.find((p) => p !== keepPaneId);
+      if (!otherPaneId) return false;
+
+      const otherTabs = this.getTabsByPane(otherPaneId);
+      for (const t of otherTabs) {
+        this.moveTabToPane(t.id, keepPaneId);
+      }
+      this._panes = [keepPaneId];
+      this._activePaneId = keepPaneId;
+      this._emit('pane-unsplit', { keepPaneId });
       return true;
     }
 

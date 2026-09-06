@@ -57,6 +57,8 @@ button {
 
 .menu-slot {
   position: relative;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .menu-button, .icon-btn, .window-btn {
@@ -68,6 +70,8 @@ button {
   padding: 0 var(--space-2);
   border-radius: var(--radius);
   color: var(--color-text);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .menu-button:hover, .icon-btn:hover, .window-btn:hover {
@@ -77,11 +81,116 @@ button {
 .drag-region {
   flex: 1;
   height: 100%;
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .window-controls {
   display: flex;
   height: 100%;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* 메뉴 팝오버 (FR-22, TE-036) */
+.menu-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 190px;
+  padding: var(--space-1) 0;
+  display: none;
+  z-index: 100;
+}
+
+.menu-popover.open {
+  display: block;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--space-3);
+  font-size: 11px;
+  color: var(--color-text);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background: var(--color-hover);
+}
+
+.menu-item.active {
+  font-weight: 600;
+}
+
+.menu-item-check {
+  display: inline-block;
+  font-size: 11px;
+  width: 14px;
+  margin-right: var(--space-1);
+}
+
+.menu-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-item-shortcut {
+  color: var(--color-muted);
+  font-size: 10px;
+  margin-left: var(--space-3);
+}
+
+.menu-item-disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.menu-item-disabled:hover {
+  background: transparent;
+}
+
+.menu-divider {
+  border-top: 1px solid var(--color-divider);
+  margin: 4px 0;
+}
+
+.menu-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  padding: 0 var(--space-3);
+  height: 20px;
+}
+
+.menu-section-action {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  border-radius: var(--radius);
+}
+
+.menu-section-action:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
 }
 
 /* 본체 구역 (세로 띠 + 탐색기 + 분할 손잡이 + 보기 영역) */
@@ -331,6 +440,152 @@ button {
   background: var(--color-bg);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* 에디터 2분할 (FR-24, TE-038) */
+.editor-panes {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+}
+
+.pane-splitter {
+  width: 4px;
+  cursor: col-resize;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+/* 탭 바 & 탭 (FR-23, TE-037) */
+.tab-bar {
+  display: flex;
+  align-items: flex-end;
+  height: 30px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tab-list {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  overflow-x: auto;
+  height: 100%;
+  align-items: flex-end;
+}
+
+/* 탭 상단 모서리 라운딩 제외 (border-radius: 0 고정) */
+.tab {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  max-width: 180px;
+  padding: 0 var(--space-2);
+  background: transparent;
+  color: var(--color-muted);
+  border-radius: 0;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  border-top: 1px solid transparent;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+}
+
+.tab:hover {
+  background: var(--color-hover);
+}
+
+.tab.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+/* 초점 조각 시각 표시: 활성 조각의 활성 탭에 하단 포커스 테두리 (FR-24) */
+.editor-pane.active .tab.active {
+  border-bottom: 1px solid var(--color-focus-ring);
+}
+
+/* 미리보기 탭: 이탤릭체 라벨 (FR-23) */
+.tab.preview .tab-label {
+  font-style: italic;
+}
+
+.tab-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: var(--space-1);
+  border-radius: var(--radius);
+  opacity: 0.6;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background: var(--color-hover);
+}
+
+.tab-bar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.view-container {
+  flex: 1;
+  height: calc(100% - 30px);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+  position: relative;
+}
+
+.view-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Zen 모드 스타일 (FR-25, TE-039) */
+.shell-root.zen {
+  grid-template-rows: 0 minmax(0, 1fr) 0;
+}
+
+.shell-root.zen .menu-bar,
+.shell-root.zen .activity-rail,
+.shell-root.zen .sidebar,
+.shell-root.zen .splitter,
+.shell-root.zen .status-bar {
+  display: none !important;
 }
 
 /* 5. 상태 표시줄 (구역 5) */
