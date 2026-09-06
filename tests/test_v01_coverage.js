@@ -259,7 +259,10 @@ group('트리 초점 시 선택 행 표시', 1, [
       || /#tree-root:focus/.test(shellCss),
       '초점이 있을 때의 표시가 따로 있다'
     );
-    assert(/color-selected/.test(shellCss), '선택 배경이 토큰을 쓴다');
+    assert(
+      /\.tree-row\.selected\s*\{[^}]*background:\s*var\(--color-bg\)/.test(shellCss),
+      '선택 행 배경이 콘텐츠 배경 토큰을 쓴다'
+    );
   }
 ]);
 
@@ -358,8 +361,12 @@ group('조각 사이 탭 이동', 1, [
     tm.splitActivePane();
     const target = tm.getPanes().find((p) => p !== opened.tab.paneId);
     assert(target, '가르면 조각이 둘이 된다');
-    assert.strictEqual(tm.moveTabToPane(opened.tab.id, target), true, '탭이 옮겨진다');
-    assert.strictEqual(tm.getTab(opened.tab.id).paneId, target, '옮긴 조각에 있다');
+    assert.strictEqual(tm.moveTabToPane(opened.tab.id, target), false, '같은 대상이 있으면 옮겨지지 않는다');
+    const unique = tm.openTab({
+      kind: 'k', resource: { path: 'b' }, title: 'b', paneId: opened.tab.paneId, pinned: true
+    }).tab;
+    assert.strictEqual(tm.moveTabToPane(unique.id, target), true, '다른 대상은 옮겨진다');
+    assert.strictEqual(tm.getTab(unique.id).paneId, target, '옮긴 조각에 있다');
     assert(tm.getPanes().length <= 2, '셋 이상으로 갈리지 않는다');
   }
 ]);

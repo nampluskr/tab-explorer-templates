@@ -125,10 +125,21 @@ const splitThird = tabManager.splitActivePane();
 assert.strictEqual(splitThird, false, 'Must not split into 3 or more panes');
 assert.strictEqual(tabManager.getPanes().length, 2, 'Pane count remains capped at 2');
 
-// 4) 탭을 반대쪽 조각으로 이동 (moveTabToPane)
+// 4) 반대쪽 조각에 같은 대상이 있으면 이동 금지, 다른 대상은 이동
 const [paneA, paneB] = tabManager.getPanes();
-const tabToMove = tabManager.getTabsByPane(paneB)[0];
-assert(tabToMove, 'There should be a tab in paneB');
+const duplicateTab = tabManager.getTabsByPane(paneB)[0];
+assert(duplicateTab, 'There should be a duplicated tab in paneB');
+assert.strictEqual(tabManager.canMoveTabToPane(duplicateTab.id, paneA), false, 'Duplicate target must not be movable');
+assert.strictEqual(tabManager.moveTabToPane(duplicateTab.id, paneA), false, 'Moving a duplicate target must fail');
+assert.strictEqual(duplicateTab.paneId, paneB, 'Blocked tab must remain in its source pane');
+
+const tabToMove = tabManager.openTab({
+  kind: 'default',
+  title: 'unique.md',
+  resource: { path: 'unique.md' },
+  paneId: paneB,
+  pinned: true
+}).tab;
 
 const moveOk = tabManager.moveTabToPane(tabToMove.id, paneA);
 assert.strictEqual(moveOk, true, 'moveTabToPane must succeed');

@@ -262,7 +262,7 @@ async function run() {
     '껍데기가 shell-rendered 통보를 보낸다'
   );
   assert(
-    /bindEditorEvents\(\);\s*\n\s*mountActiveViews\(\);\s*\n\s*notifyRendered\('editor'\);/.test(shellAppSrc),
+    /bindEditorEvents\(\);\s*\n\s*mountActiveViews\(\);[\s\S]*?notifyRendered\('editor'\);\s*\n  }/.test(shellAppSrc),
     'renderEditor가 끝날 때 통보한다'
   );
   assert(

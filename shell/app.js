@@ -123,7 +123,7 @@
           : [{ label: '(Empty)', disabled: true }]),
         { type: 'divider' },
         { label: 'Split Editor', shortcut: 'Ctrl+\\', action: 'split-editor' },
-        { label: 'Move Tab', shortcut: 'F6', action: 'move-tab' },
+        { label: 'Move Tab', shortcut: 'F6', action: 'move-tab', disabled: !canMoveActiveTabToOtherPane() },
         { label: 'Close Tab', shortcut: 'Ctrl+W', action: 'close-tab' },
         { label: 'Close All Tabs', action: 'close-all-tabs' },
         { type: 'divider' },
@@ -291,15 +291,19 @@
   }
 
   function moveActiveTabToOtherPane() {
-    if (!tabManager || tabManager.getPanes().length !== 2) return;
+    if (!canMoveActiveTabToOtherPane()) return false;
     const activeTab = tabManager.getActiveTab();
-    if (!activeTab) return;
-
     const currentPane = activeTab.paneId;
     const targetPane = tabManager.getPanes().find((p) => p !== currentPane);
-    if (targetPane) {
-      tabManager.moveTabToPane(activeTab.id, targetPane);
-    }
+    return tabManager.moveTabToPane(activeTab.id, targetPane);
+  }
+
+  function canMoveActiveTabToOtherPane() {
+    if (!tabManager || tabManager.getPanes().length !== 2) return false;
+    const activeTab = tabManager.getActiveTab();
+    if (!activeTab) return false;
+    const targetPane = tabManager.getPanes().find((paneId) => paneId !== activeTab.paneId);
+    return Boolean(targetPane && tabManager.canMoveTabToPane(activeTab.id, targetPane));
   }
 
   function closeActiveTab() {
@@ -567,7 +571,7 @@
 
       return `
         ${splitterHtml}
-        <section class="editor-pane ${isPaneActive ? 'active' : ''}" data-pane-id="${paneId}">
+        <section class="editor-pane ${isPaneActive ? 'active' : ''}" data-pane-id="${paneId}" tabindex="-1">
           <div class="tab-bar">
             <div class="tab-list" data-pane-id="${paneId}">
               ${tabListHtml}
@@ -587,6 +591,10 @@
 
     bindEditorEvents();
     mountActiveViews();
+    if (currentFocusArea === 'editor') {
+      const activePane = panesContainer.querySelector('.editor-pane.active');
+      if (activePane) activePane.focus();
+    }
     notifyRendered('editor');
   }
 
@@ -609,6 +617,17 @@
     document.querySelectorAll('.editor-pane').forEach((paneEl) => {
       const paneId = paneEl.dataset.paneId;
 
+      paneEl.addEventListener('focusin', () => {
+        currentFocusArea = 'editor';
+        if (tabManager.getActivePaneId() !== paneId) {
+          tabManager.setActivePaneId(paneId);
+          document.querySelectorAll('.editor-pane').forEach((pane) => {
+            pane.classList.toggle('active', pane.dataset.paneId === paneId);
+          });
+          updateStatus();
+        }
+      });
+
       paneEl.addEventListener('click', () => {
         tabManager.setActivePaneId(paneId);
         currentFocusArea = 'editor';
@@ -617,7 +636,8 @@
       });
 
       paneEl.addEventListener('dragover', (e) => {
-        if (draggedTabId && draggedSourcePaneId && draggedSourcePaneId !== paneId) {
+        if (draggedTabId && draggedSourcePaneId && draggedSourcePaneId !== paneId
+          && tabManager.canMoveTabToPane(draggedTabId, paneId)) {
           e.preventDefault();
           if (e.dataTransfer) {
             e.dataTransfer.dropEffect = 'move';
@@ -700,6 +720,7 @@
         const activeTab = tabManager.getActiveTab();
         if (activeTab && activeTab.id === tabId) {
           currentFocusArea = 'editor';
+          tabEl.closest('.editor-pane').focus();
           return;
         }
 
@@ -794,6 +815,8 @@
     if (!treeRoot || !treeModel) return;
 
     treeRoot.addEventListener('keydown', async (e) => {
+      // Let the shell handle area and tab navigation.
+      if (e.key === 'Tab') return;
       e.stopPropagation(); // 상위 document로의 버블링 방지 (2칸 이동 방지)
       await treeModel.handleKeyDown(e);
       renderEditor();
@@ -1031,16 +1054,26 @@
     tabManager.activateTab(tabs[nextIndex].id);
   }
 
-  function cycleFocusArea() {
-    if (currentFocusArea === 'tree') {
-      currentFocusArea = 'editor';
-      const activeSlot = document.querySelector('.editor-pane.active');
-      if (activeSlot) activeSlot.focus();
-    } else {
-      currentFocusArea = 'tree';
-      const treeRoot = document.getElementById('tree-root');
-      if (treeRoot) treeRoot.focus();
+  function cycleFocusArea(direction = 1) {
+    const treeRoot = document.getElementById('tree-root');
+    const areas = [];
+    if (treeRoot && treeRoot.getClientRects().length) areas.push(treeRoot);
+    document.querySelectorAll('.editor-pane').forEach((pane) => {
+      if (pane.getClientRects().length) areas.push(pane);
+    });
+    if (!areas.length) return;
+    let index = areas.findIndex((area) => area.contains(document.activeElement));
+    if (index < 0) {
+      index = areas.findIndex((area) => currentFocusArea === 'tree'
+        ? area === treeRoot : area.dataset.paneId === tabManager.getActivePaneId());
     }
+    const next = areas[(index + direction + areas.length) % areas.length];
+    if (next === treeRoot) {
+      currentFocusArea = 'tree';
+    } else {
+      currentFocusArea = 'editor';
+    }
+    next.focus();
   }
 
   // 11. 상태표시줄 및 설정 보존 (FR-22, FR-26, TE-040)

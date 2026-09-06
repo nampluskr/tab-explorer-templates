@@ -177,6 +177,27 @@
       return tabId ? this.getTab(tabId) : null;
     }
 
+    hasEquivalentTabInPane(tabId, paneId) {
+      const tab = this._tabs.get(tabId);
+      if (!tab || !this._panes.includes(paneId)) return false;
+      const registeredConfig = this.registry.get(tab.kind) || {};
+      const checker = registeredConfig.equalityChecker;
+
+      return this.getTabsByPane(paneId).some((candidate) => {
+        if (candidate.id === tab.id || candidate.kind !== tab.kind) return false;
+        if (typeof checker === 'function') {
+          return checker(candidate.resource, tab.resource);
+        }
+        return deepEqual(candidate.resource, tab.resource);
+      });
+    }
+
+    canMoveTabToPane(tabId, targetPaneId) {
+      const tab = this._tabs.get(tabId);
+      if (!tab || tab.paneId === targetPaneId) return false;
+      return !this.hasEquivalentTabInPane(tabId, targetPaneId);
+    }
+
     openTab({
       kind,
       resource = {},
@@ -327,7 +348,7 @@
 
     moveTabToPane(tabId, targetPaneId) {
       const tab = this._tabs.get(tabId);
-      if (!tab || tab.paneId === targetPaneId) return false;
+      if (!tab || !this.canMoveTabToPane(tabId, targetPaneId)) return false;
 
       if (!this._panes.includes(targetPaneId)) {
         this._panes.push(targetPaneId);

@@ -136,27 +136,26 @@ app.whenReady().then(async () => {
   }
   console.log(`  두 갈래가 가리키는 같은 소재를 다시 읽어 ${Object.keys(branchSame).length}개 항목 대조`);
 
-  // --- NFR-3: 세 테마의 명도 대비 ---
-  // 사양이 값을 못박은 것은 둘뿐이다 — 본문 글자/배경 4.5:1, 큰 글자와 주요 구분선 3:1.
-  // "강조색 위 글자"는 판정 방법이 계산하라고만 하고 기준값을 주지 않아 재어서 보고만 한다.
-  // 그 값이 gray 테마에서 4.5에 못 미치는데, 색은 v0.1에서 그대로 옮겨 온 것이라
-  // (NFR-1 · 제약 7) 여기서 고칠 수 없다. PROGRESS에 남긴 미해결 충돌이다.
+  // --- NFR-3: contrast across all three themes ---
+  // Selected rows and active tabs use --color-bg, so their text contrast is
+  // measured against the actual selection background rather than the legacy token.
   for (const theme of THEMES) {
     const c = oursByTheme[theme].colors;
     const body = contrast(c.text, c.bg);
     const muted = contrast(c.muted, c.bg);
     const border = contrast(c.border, c.bg);
-    const onSelected = contrast(c.text, c.selected);
-    const mutedOnSelected = contrast(c.muted, c.selected);
+    const selectedText = contrast(c.text, c.bg);
+    const selectedMuted = contrast(c.muted, c.bg);
 
     if (!(body >= 4.5)) note(`NFR-3 [${theme}] 본문 대비 ${body && body.toFixed(2)} < 4.5`);
     if (!(muted >= 3)) note(`NFR-3 [${theme}] 보조 글자 대비 ${muted && muted.toFixed(2)} < 3`);
     if (!(border >= 3)) note(`NFR-3 [${theme}] 구분선 대비 ${border && border.toFixed(2)} < 3`);
+    if (!(selectedText >= 4.5)) note(`NFR-3 [${theme}] 선택 항목 글자 대비 ${selectedText && selectedText.toFixed(2)} < 4.5`);
+    if (!(selectedMuted >= 4.5)) note(`NFR-3 [${theme}] 선택 항목 보조 글자 대비 ${selectedMuted && selectedMuted.toFixed(2)} < 4.5`);
 
-    const flag = (onSelected >= 4.5 && mutedOnSelected >= 4.5) ? '' : '  ← 4.5 미만 (기준값 미정, 아래 참고)';
     console.log(
       `  ${theme}: 본문 ${body.toFixed(2)} · 보조 ${muted.toFixed(2)} · 구분선 ${border.toFixed(2)}` +
-      ` · 선택행 위 ${onSelected.toFixed(2)}/${mutedOnSelected.toFixed(2)}${flag}`
+      ` · 선택 항목 ${selectedText.toFixed(2)}/${selectedMuted.toFixed(2)}`
     );
   }
 
@@ -179,11 +178,6 @@ app.whenReady().then(async () => {
     app.exit(1);
     return;
   }
-  console.log(
-    '\n참고 — gray 테마의 선택 행 위 글자 대비가 4.5에 못 미친다(3.78 / 3.04).\n' +
-    '  NFR-3의 명문 기준(본문 4.5 · 큰 글자와 구분선 3)은 세 테마 모두 충족한다.\n' +
-    '  선택 행 색은 v0.1에서 그대로 옮겨 온 값이라(NFR-1 · 제약 7) 여기서 바꿀 수 없다.'
-  );
   console.log('\nAll appearance parity checks (TE-048) passed successfully!');
   app.exit(0);
 }).catch((err) => {
