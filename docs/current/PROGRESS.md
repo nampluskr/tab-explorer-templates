@@ -413,3 +413,24 @@
   1. Puppeteer 브라우저 환경에서 4단계 깊이(`folder1\subfolder\deep\file.txt`) 구조를 생성하고, `ArrowRight`로 하위 진입 후 `ArrowLeft` 연속 입력 시 `file.txt -> deep (펼쳐짐) -> deep (접힘) -> subfolder (펼쳐짐) -> subfolder (접힘) -> folder1 (펼쳐짐) -> folder1 (접힘) -> root` 순서로 완벽하게 단계별 역탐색됨을 자동화 검증.
   2. `tests/test_tree.js`에 다층 트리 단계별 `ArrowLeft` 역탐색(하위 파일 -> 부모 폴더 이동 -> 폴더 접힘 -> 루트 이동) 단위 테스트 케이스 추가 및 전체 통과.
   3. Node 전체 단위 테스트 6종 통과 확인.
+
+### 메뉴바 우측 상단 Zen 모드 및 테마 변경 아이콘 추가 (D-10, NFR-5)
+
+- 요청: Zen 모드 / 테마 변경 아이콘이 메뉴바 우측 상단에 있어야 함.
+- 원인:
+  1. `explorer_templates` v0.1 및 NFR-5 마우스 도달 가능성 요구사항에 따라 메뉴바 우측 창 제어 영역(`window-controls`)에 Zen 모드 토글 버튼 및 색상 테마 전환 버튼이 배치되어야 하나, 신규 껍데기 마크업에서 창 제어 3버튼(최소화/최대화/닫기)만 선언되어 있었음.
+  2. 테마 변경 버튼의 동적 상태 아이콘(white: 빈 원, gray: 반달 원, dark: 꽉 찬 원) 렌더링 및 클릭 순환 로직 누락.
+- 조치:
+  1. `shell/app.js`의 `renderShell()` 내 `.window-controls`에 `btn-win-zen` (Zen 모드 토글, `icon-zen`) 및 `btn-win-theme` (색상 테마 변경, `getThemeIconSvg`) 버튼 2종을 추가.
+  2. `shell/app.js`에 테마별 상태 아이콘 생성 함수 `getThemeIconSvg(theme)` 및 `updateThemeButtonIcon()`을 구현하여 테마 전환(클릭/메뉴/설정 복원) 시 실시간 반영.
+  3. `shell/app.js`의 `bindShellEvents()`에 `btn-win-zen` 클릭(Zen 모드 토글) 및 `btn-win-theme` 클릭(gray -> dark -> white 순환) 리스너 연결.
+  4. `shell/shell.css`에 `.theme-icon` 채움 및 선 스타일과 `.window-btn.active` 스타일 추가.
+  5. `tests/test_shell_phase_seven.js`에 Zen/Theme 버튼 존재, SVG 심볼 및 FR-4 무지 제약 통과 검증 테스트 추가.
+- 결과:
+  1. 메뉴바 우측 상단에 `Zen 모드` (네 모서리 꺾쇠) 및 `테마 변경` (동적 원형 아이콘) 버튼이 창 제어 3버튼 좌측에 깔끔하게 배치됨.
+  2. 테마 변경 버튼 클릭 시 `gray (반달) -> dark (채운 원) -> white (빈 원) -> gray` 순서로 즉시 순환하며 아이콘과 앱 전체 테마가 동기화됨.
+  3. Zen 모드 버튼 클릭 시 즉시 Zen 모드로 전환(편집 영역만 남김)되고, <kbd>Escape</kbd> 또는 <kbd>F11</kbd> 입력 시 정상 복귀됨.
+- 검증:
+  1. Puppeteer 브라우저 환경에서 실제 SVG 로드 및 스크린샷 렌더링 검증 완료 (`Zen Mode -> Color Theme -> Minimize -> Maximize -> Close` 5개 버튼 우측 상단 정렬 확인).
+  2. 브라우저 내 버튼 클릭을 통한 테마 순환(`gray -> dark -> white -> gray`) 및 Zen 모드 토글 / Escape 복원 동작 테스트 통과.
+  3. `tests/test_shell_phase_seven.js` 및 전체 단위 테스트 통과 (FR-4 무지 제약 위반 0건 확인).

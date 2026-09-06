@@ -74,7 +74,7 @@ button {
   app-region: no-drag;
 }
 
-.menu-button:hover, .icon-btn:hover, .window-btn:hover {
+.menu-button:hover, .icon-btn:hover, .window-btn:hover, .window-btn.active {
   background: var(--color-hover);
 }
 
@@ -621,4 +621,11 @@ button {
   stroke-linejoin: round;
   display: inline-block;
   vertical-align: middle;
+}
+
+/* 메뉴바 테마 전환 아이콘 (NFR-5) */
+.theme-icon path,
+.theme-icon circle[fill]:not([fill="none"]) {
+  fill: var(--color-muted);
+  stroke: none;
 }

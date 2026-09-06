@@ -15,10 +15,25 @@
   let recentFolders = [];
   let currentFocusArea = 'tree'; // 'tree' | 'editor'
 
+  function getThemeIconSvg(theme) {
+    const fillContent = theme === 'gray'
+      ? '<path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="var(--color-muted)"/>'
+      : (theme === 'dark' ? '<circle cx="8" cy="8" r="5.5" fill="var(--color-muted)"/>' : '');
+    return `<svg class="icon theme-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor"/>${fillContent}</svg>`;
+  }
+
+  function updateThemeButtonIcon() {
+    const btn = document.getElementById('btn-win-theme');
+    if (btn) {
+      btn.innerHTML = getThemeIconSvg(THEMES[currentThemeIndex]);
+    }
+  }
+
   function applyTheme(theme) {
     if (!THEMES.includes(theme)) return;
     currentThemeIndex = THEMES.indexOf(theme);
     document.documentElement.setAttribute('data-theme', theme);
+    updateThemeButtonIcon();
   }
 
   function cycleTheme() {
@@ -26,6 +41,7 @@
     const nextTheme = THEMES[currentThemeIndex];
     applyTheme(nextTheme);
     persistShell();
+    renderMenuPopovers();
     return nextTheme;
   }
 
@@ -40,6 +56,11 @@
     if (shellRoot) {
       shellRoot.classList.toggle('zen', zenMode);
     }
+    const btnZen = document.getElementById('btn-win-zen');
+    if (btnZen) {
+      btnZen.classList.toggle('active', zenMode);
+    }
+    renderMenuPopovers();
   }
 
   // 2. 갈아끼우는 자리 다섯 (Phase 5)
@@ -296,6 +317,12 @@
           </div>
           <div class="drag-region"></div>
           <div class="window-controls">
+            <button class="window-btn" id="btn-win-zen" title="Zen Mode (F11)" aria-label="Zen Mode" tabindex="-1">
+              <svg class="icon"><use href="../shared/design/icons.svg#icon-zen"/></svg>
+            </button>
+            <button class="window-btn" id="btn-win-theme" title="Color Theme" aria-label="Color Theme" tabindex="-1">
+              ${getThemeIconSvg(THEMES[currentThemeIndex])}
+            </button>
             <button class="window-btn" id="btn-win-min" title="최소화" tabindex="-1">
               <svg class="icon"><use href="../shared/design/icons.svg#icon-minimize"/></svg>
             </button>
@@ -377,7 +404,15 @@
   }
 
   function bindShellEvents() {
-    // 창 제어 버튼 (FR-21, TE-035)
+    // 창 제어 버튼 (FR-21, TE-035) 및 우측 상단 Zen 모드 / 테마 변경 (NFR-5)
+    const btnZen = document.getElementById('btn-win-zen');
+    if (btnZen) {
+      btnZen.addEventListener('click', () => setZenMode(!zenMode));
+    }
+    const btnTheme = document.getElementById('btn-win-theme');
+    if (btnTheme) {
+      btnTheme.addEventListener('click', () => cycleTheme());
+    }
     const btnMin = document.getElementById('btn-win-min');
     if (btnMin) {
       btnMin.addEventListener('click', () => window.bridge && window.bridge.minimize && window.bridge.minimize());

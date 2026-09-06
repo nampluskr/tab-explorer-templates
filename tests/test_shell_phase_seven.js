@@ -212,6 +212,21 @@ assert(appJs.includes('${appName} ${appVer} (${buildDate}) - ${hostName}'), 'D-2
 // 탭 상단 모서리 라운딩 제외 (border-radius: 0)
 assert(shellCss.includes('.tab {') && shellCss.includes('border-radius: 0;'), 'Tab border-radius must be 0 (rectangular)');
 
+// 메뉴바 우측 상단 Zen 모드 및 테마 변경 버튼 (NFR-5)
+assert(appJs.includes('id="btn-win-zen"'), 'app.js must include btn-win-zen in menu-bar window-controls');
+assert(appJs.includes('id="btn-win-theme"'), 'app.js must include btn-win-theme in menu-bar window-controls');
+assert(appJs.includes('icon-zen'), 'app.js must use icon-zen for zen button');
+assert(shellCss.includes('.theme-icon'), 'shell.css must style theme-icon');
+
+// FR-4 무지 제약: shell/app.js에 종류 이름 및 비교문 부재 검증
+for (const kindName of ['file', 'folder', 'terminal']) {
+  const kindRegex = new RegExp(`['"\`]${kindName}['"\`]`, 'gi');
+  const matches = appJs.match(kindRegex);
+  assert(!matches || matches.length === 0, `Found forbidden kind name '${kindName}' in shell/app.js: ${matches}`);
+}
+const compMatches = appJs.match(/(?<!typeof\s)(?:kind|\.kind)\s*[!=]==?\s*['"][a-zA-Z0-9_-]+['"]/g);
+assert(!compMatches || compMatches.length === 0, `Found forbidden kind comparison in shell/app.js: ${compMatches}`);
+
 console.log('  -> TE-035 & TE-036 passed');
 
 // -------------------------------------------------------------
