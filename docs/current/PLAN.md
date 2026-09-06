@@ -1,4 +1,4 @@
-# PLAN — tab_explorer_templates
+# PLAN — tab-explorer-templates
 
 > 버전: v0.1 · 작성일: 2026-09-06
 >

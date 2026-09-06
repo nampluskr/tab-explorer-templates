@@ -1,4 +1,4 @@
-# tab_explorer_templates
+# tab-explorer-templates
 
 ## 무엇을 하는가
 
@@ -74,4 +74,3 @@
 - 현재 버전 작업 문서: `docs/current/` (BRIEF, DECISIONS, SPEC, PLAN, PROGRESS)
 - 연결 계층 및 오류 규약: `docs/BRIDGE-CONTRACT.md`, `docs/ERROR-CONTRACT.md`
 - 이전 버전(`explorer_templates`) 대비 개선 상세 분석: `docs/ARCHITECTURE-COMPARISON.md`
-

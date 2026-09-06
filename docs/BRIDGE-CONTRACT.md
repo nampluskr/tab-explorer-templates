@@ -1,4 +1,4 @@
-# Bridge 계약 — tab_explorer_templates
+# Bridge 계약 — tab-explorer-templates
 
 Shell은 아래 네 묶음의 동작만 연결 계층에 요청한다 (FR-36).
 모든 결과는 `{ "ok": true, "value": ... }` 또는 `{ "ok": false, "error": { "code": "...", "message": "..." } }` 형태를 따른다.

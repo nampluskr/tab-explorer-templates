@@ -1,4 +1,4 @@
-# 오류 계약 — tab_explorer_templates
+# 오류 계약 — tab-explorer-templates
 
 연결 계층과 갈아끼우는 자리가 돌려주는 오류는 두 갈래(`host_pywebview`, `host_electron`)에서 같은 구분값을 쓴다 (FR-37).
 모든 오류는 `{ "ok": false, "error": { "code": "...", "message": "..." } }` 형태로 반환되며, 앱을 비정상 종료하지 않고 Shell에 알림으로 전달된다.

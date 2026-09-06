@@ -1,4 +1,4 @@
-# BRIEF — tab_explorer_templates
+# BRIEF — tab-explorer-templates
 
 > 버전: v0.1 · 작성일: 2026-09-06
 >

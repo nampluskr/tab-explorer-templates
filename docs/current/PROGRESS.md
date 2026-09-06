@@ -1,4 +1,4 @@
-# PROGRESS — tab_explorer_templates
+# PROGRESS — tab-explorer-templates
 
 > 버전: v0.1 · 작성일: 2026-09-06
 >
@@ -667,7 +667,7 @@
 
 ### 계획 외 기록 — 검증 실행이 host_pywebview/settings.json을 바꾼다
 
-- 조치: 위 P8 검증으로 pywebview 앱을 두 번 띄우면서 `root_path`가 `D:\projects\tab_explorer_templates`로 바뀌고 `recent_folders`에 항목이 늘었다. 사용자가 고른 `theme: dark` · `icon_theme: vsicons`도 함께 들어 있다.
+- 조치: 위 P8 검증으로 pywebview 앱을 두 번 띄우면서 `root_path`가 `D:\projects\tab-explorer-templates`로 바뀌고 `recent_folders`에 항목이 늘었다. 사용자가 고른 `theme: dark` · `icon_theme: vsicons`도 함께 들어 있다.
 - 결과: 소재 변경이 아니라 실행으로 생기는 런타임 상태(FR-26이 보존하기로 한 값)라 커밋에서 제외했다. 되돌릴지 커밋할지는 사용자 판단 대기 중이다.
 - 검증: `git status --short`로 커밋 뒤 남은 변경이 이 파일 1건뿐임을 확인했다.
 - 이후: 검증으로 앱을 띄울 때마다 같은 파일이 같은 이유로 다시 바뀐다. 같은 내용을 반복해 적지 않는다. `.gitignore`로 옮길지 커밋할지 정해지면 그때 한 번 적는다.
@@ -701,7 +701,7 @@
   - 세로띠 폭 30px 유지, 버튼 x = 0 · 폭 30px, 버튼 배경 `rgba(0,0,0,0)`
   - 구분선 픽셀을 x = 29에서 y = 50 · 62 · 200 · 400 · 600 · 745 · 758로 훑어 전부 `RGB(111,118,129)` — 두 토글 아이콘 줄에서도 끊기지 않는다
   - 탐색기 토글 둘레(x = 15, y = 62)가 세로띠 배경과 같은 `RGB(23,27,34)`
-  - 상태 표시줄이 `D:\projects\tab_explorer_templates\CLAUDE.md`로 절대 경로를 표시한다
+  - 상태 표시줄이 `D:\projects\tab-explorer-templates\CLAUDE.md`로 절대 경로를 표시한다
 - 검증: `tests/test_shell_phase_seven.js`에 셋을 판정하는 시험을 더했다 — 세로띠가 `border-right`를 쓰지 않고 `::after`로 그리는지, `.rail-btn.active`에 배경이 없는지, 상태 표시줄이 `toAbsolutePath`를 거치는지. `toAbsolutePath` 자체도 Windows · UNC · POSIX · 루트 없음까지 여덟 경우로 시험한다. 고친 곳을 하나씩 되돌리는 역검증으로 세 시험이 실제로 잡는 것을 확인했다. Node 7종 + Python 36건 전건 통과, pywebview 갈래 화면 확인.
 
 ### 계획 외 발견 — progress-check 훅이 settings.json 때문에 매 턴 걸린다
@@ -767,4 +767,3 @@
   3. `## 요구 환경` 및 `## 문서` 절을 추가하여 실행 환경 기준과 `docs/`의 핵심 규약 문서 및 비교 분석 문서(`docs/COMPARISON.md`) 링크를 정립했다.
 - 결과: 저장소를 처음 열어본 사용자가 프로젝트의 결과와 활용 절차를 한눈에 파악하고 즉시 파생 앱 제작에 착수할 수 있게 되었다.
 - 검증: `README.md` 마크다운 렌더링 및 링크 유효성 확인, `git status --short` 확인.
-

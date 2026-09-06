@@ -1,4 +1,4 @@
-# DECISIONS — tab_explorer_templates
+# DECISIONS — tab-explorer-templates
 
 > 버전: v0.1 · 작성일: 2026-09-06
 >
@@ -451,7 +451,7 @@ D-10은 v0.1에서 **수치**를 참고한다고 정했다. 왼쪽 탐색기(세
 디자인 파일은 갈래 폴더 밖에 한 벌로 둔다. 폴더 배치를 다음으로 고정한다.
 
 ```text
-tab_explorer_templates/
+tab-explorer-templates/
 ├─ shared/design/     디자인 파일과 아이콘 자산 (D-10)
 ├─ shell/             껍데기 한 벌. 리소스 종류도 실행 환경도 모른다
 ├─ presets/           파일 프리셋 · 폴더 프리셋 (D-7)
