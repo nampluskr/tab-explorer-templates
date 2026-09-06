@@ -424,7 +424,7 @@
     },
     {
       "id": "TE-029",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "탐색기 머리글과 폭 조절",
@@ -434,11 +434,11 @@
       "note": "접힘 시 0폭 찌그러짐은 v0.1에서 결함으로 걸렸던 자리",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-030",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "트리 겉모습과 정렬",
@@ -448,11 +448,11 @@
       "note": "접기 표시와 아이콘은 고정하고 이름만 말줄임한다 (D-11)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-031",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "트리 지연 로딩과 기억",
@@ -462,11 +462,11 @@
       "note": "펼치는 동안 자리표시를 보이고 나머지를 조작할 수 있어야 한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-032",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "트리 탐색 키 여섯 가지",
@@ -476,11 +476,11 @@
       "note": "키보드 조작 불가는 v0.1에서 결함으로 걸렸던 자리. 무엇이 열 수 있는 행인지는 FR-6이 정한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-033",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "트리 커서와 활성 탭 분리",
@@ -490,11 +490,11 @@
       "note": "두 상태는 어긋날 수 있어야 한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-034",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P6",
       "title": "트리 첫 진입 응답성 확보",
@@ -504,7 +504,7 @@
       "note": "루트 전체를 재귀로 훑으면 이 비율이 수십 배가 된다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-035",

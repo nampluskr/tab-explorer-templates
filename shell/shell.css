@@ -151,6 +151,10 @@ button {
   display: none;
 }
 
+.sidebar.collapsed + .splitter {
+  display: none;
+}
+
 .sidebar-header {
   height: 30px;
   display: flex;
@@ -166,11 +170,146 @@ button {
 
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  height: calc(100% - 30px);
 }
 
-/* 구분 스플리터 */
+/* 트리 영역 (FR-16, TE-030) */
+.tree {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar) transparent;
+}
+
+.tree::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tree::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tree::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+  border-radius: 4px;
+}
+
+.tree::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-hover);
+}
+
+.tree-empty {
+  padding: var(--space-3);
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+/* 트리 행 겉모습 (FR-16 9항목) */
+/* 1. 배경 강조가 탐색기 좌우 끝까지 닿음 */
+.tree-row {
+  display: flex;
+  align-items: center;
+  height: var(--tree-row-height);
+  width: 100%;
+  padding: 0 var(--space-2);
+  position: relative;
+  text-align: left;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.tree-row:hover {
+  background: var(--color-hover);
+}
+
+/* 6. 선택 행은 배경색만 바뀌고 글자색 유지. 트리 포커스 시 1px 안쪽 초점 테두리 */
+.tree-row.selected {
+  background: var(--color-selected);
+}
+
+.tree:focus .tree-row.selected {
+  outline: 1px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+/* 7. 깊이마다 들여쓰기 안내선 */
+.tree-row::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  border-left: 1px solid var(--color-divider);
+  left: calc(var(--depth) * var(--tree-indent) + var(--space-3));
+}
+
+.tree-row.is-root::before {
+  display: none;
+}
+
+/* 2. 들여쓰기는 twistie의 margin-left로 8px 배수 지정 */
+/* 3. 5x5 꺾쇠 회전 (> 접힘, v 펼침) */
+.twistie {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--icon-size);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  margin-left: calc(var(--depth) * var(--tree-indent));
+}
+
+.twistie::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border: solid currentColor;
+  border-width: 0 calc(var(--icon-stroke) * 1px) calc(var(--icon-stroke) * 1px) 0;
+  margin-left: -2px;
+  transform: rotate(-45deg);
+  transition: transform .12s;
+}
+
+.tree-row.expanded .twistie::before {
+  margin-left: 0;
+  margin-top: -2px;
+  transform: rotate(45deg);
+}
+
+/* 3. 단말 행에서는 twistie 자리(16px)만 두고 감춤 */
+/* 4. 이로써 같은 깊이의 디렉토리 행과 단말 행의 아이콘 x좌표가 동일해짐 */
+.tree-row.leaf .twistie::before,
+.tree-row:not(.directory) .twistie::before {
+  visibility: hidden;
+}
+
+/* 8. 디렉토리는 본문색, 단말은 흐린 색. 아이콘도 글자색을 따름 (currentColor) */
+.tree-row.leaf {
+  color: var(--color-muted);
+}
+
+.tree-icon {
+  flex: 0 0 var(--icon-size);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  margin-right: var(--space-1);
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke);
+}
+
+/* 9. 이름이 넘칠 때 접기 표시와 아이콘은 줄어들지 않고 이름만 말줄임 */
+.tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 구분 스플리터 (FR-15) */
 .splitter {
   width: 4px;
   cursor: col-resize;

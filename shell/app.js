@@ -129,6 +129,35 @@
     }
 
     syncRuntimeInfo();
+    initSplitter();
+    renderTree();
+  }
+
+  function initSplitter() {
+    const splitter = document.getElementById('splitter');
+    const sidebar = document.getElementById('sidebar');
+    if (!splitter || !sidebar) return;
+
+    splitter.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = sidebar.getBoundingClientRect().width;
+      splitter.classList.add('dragging');
+
+      const onPointerMove = (moveEvent) => {
+        const newWidth = Math.max(140, startWidth + (moveEvent.clientX - startX));
+        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+      };
+
+      const onPointerUp = () => {
+        splitter.classList.remove('dragging');
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    });
   }
 
   function formatRuntimeText(runtime) {
@@ -158,16 +187,6 @@
     infoEl.textContent = formatRuntimeText(null);
   }
 
-  // 초기 실행
-  document.addEventListener('DOMContentLoaded', () => {
-    applyTheme('gray');
-    renderShell();
-  });
-
-  window.addEventListener('bridge-ready', () => {
-    syncRuntimeInfo();
-  });
-
   // 갈아끼우는 자리 다섯 (Phase 5)
   const slotRegistry = (typeof window !== 'undefined' && window.SlotRegistry)
     ? new window.SlotRegistry()
@@ -185,6 +204,141 @@
       })
     : null;
 
+  // 트리 모델 인스턴스 (Phase 6)
+  const treeModel = (typeof window !== 'undefined' && window.TreeExplorer)
+    ? new window.TreeExplorer.TreeModel({
+        bridge: (typeof window !== 'undefined' && window.bridge) ? window.bridge : null,
+        slots: slotRegistry,
+        tabManager: tabManager,
+        onRender: () => renderTree()
+      })
+    : null;
+
+  function updateStatus() {
+    const msgEl = document.getElementById('status-message');
+    if (!msgEl) return;
+
+    const activeTab = tabManager ? tabManager.getActiveTab() : null;
+    if (activeTab && activeTab.resource) {
+      msgEl.textContent = activeTab.resource.path || activeTab.title || 'Ready';
+    } else if (treeModel && treeModel.cursorPath) {
+      msgEl.textContent = treeModel.cursorPath;
+    } else if (treeModel && treeModel.rootPath) {
+      msgEl.textContent = treeModel.rootPath;
+    } else {
+      msgEl.textContent = 'Ready';
+    }
+  }
+
+  function renderTree() {
+    const container = document.getElementById('sidebar-content');
+    if (!container || !treeModel || !window.TreeExplorer) return;
+
+    container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel)}</div>`;
+    bindTreeEvents();
+  }
+
+  function bindTreeEvents() {
+    const treeRoot = document.getElementById('tree-root');
+    if (!treeRoot || !treeModel) return;
+
+    treeRoot.addEventListener('keydown', async (e) => {
+      await treeModel.handleKeyDown(e);
+      updateStatus();
+    });
+
+    treeRoot.addEventListener('focus', () => {
+      treeModel.isFocused = true;
+    });
+
+    treeRoot.addEventListener('blur', () => {
+      treeModel.isFocused = false;
+    });
+
+    const rows = treeRoot.querySelectorAll('.tree-row');
+    rows.forEach((row) => {
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = row.dataset.path;
+        const isDir = row.dataset.dir === 'true';
+        treeModel.setCursor(path);
+        if (isDir) {
+          treeModel.toggleExpand(path);
+        } else {
+          treeModel.openRowTab({
+            path: path,
+            name: row.querySelector('.tree-label')?.textContent || path,
+            is_dir: false
+          }, true);
+          updateStatus();
+        }
+      });
+
+      row.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        const path = row.dataset.path;
+        const isDir = row.dataset.dir === 'true';
+        if (!isDir) {
+          treeModel.openRowTab({
+            path: path,
+            name: row.querySelector('.tree-label')?.textContent || path,
+            is_dir: false
+          }, false);
+          updateStatus();
+        }
+      });
+    });
+
+    // 머리글 버튼 3종 이벤트 바인딩 (FR-14, TE-029)
+    const btnOpen = document.getElementById('btn-folder-open');
+    if (btnOpen && !btnOpen.__bound) {
+      btnOpen.__bound = true;
+      btnOpen.addEventListener('click', async () => {
+        if (window.bridge && typeof window.bridge.choose_root === 'function') {
+          const res = await window.bridge.choose_root();
+          if (res && res.ok && res.value) {
+            await treeModel.setRoot(res.value);
+            updateStatus();
+          }
+        }
+      });
+    }
+
+    const btnRefresh = document.getElementById('btn-tree-refresh');
+    if (btnRefresh && !btnRefresh.__bound) {
+      btnRefresh.__bound = true;
+      btnRefresh.addEventListener('click', async () => {
+        if (treeModel) {
+          await treeModel.refresh();
+          updateStatus();
+        }
+      });
+    }
+
+    const btnCollapseAll = document.getElementById('btn-collapse-all');
+    if (btnCollapseAll && !btnCollapseAll.__bound) {
+      btnCollapseAll.__bound = true;
+      btnCollapseAll.addEventListener('click', () => {
+        if (treeModel) {
+          treeModel.collapseAll();
+        }
+      });
+    }
+  }
+
+  // 초기 실행
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme('gray');
+    renderShell();
+  });
+
+  window.addEventListener('bridge-ready', () => {
+    syncRuntimeInfo();
+    if (treeModel && window.bridge) {
+      treeModel.setBridge(window.bridge);
+    }
+  });
+
   // 외부(테스트 또는 브리지) 노출 API
   window.__shell = {
     getTheme: () => document.documentElement.getAttribute('data-theme'),
@@ -192,13 +346,17 @@
     cycleTheme: cycleTheme,
     formatRuntimeText: formatRuntimeText,
     syncRuntimeInfo: syncRuntimeInfo,
+    updateStatus: updateStatus,
     slots: slotRegistry,
     tabManager: tabManager,
     tabRegistry: tabRegistry,
     viewManager: viewManager,
+    treeModel: treeModel,
+    renderTree: renderTree,
     SlotRegistry: typeof window !== 'undefined' ? window.SlotRegistry : null,
     TabModel: typeof window !== 'undefined' ? window.TabModel : null,
     ViewLifecycle: typeof window !== 'undefined' ? window.ViewLifecycle : null,
+    TreeExplorer: typeof window !== 'undefined' ? window.TreeExplorer : null,
     THEMES: THEMES
   };
 })();
