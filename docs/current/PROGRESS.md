@@ -359,3 +359,20 @@
 - 검증:
   1. Puppeteer 브라우저 환경에서 포커스가 `body`인 상태에서 document 레벨 ArrowDown 2회, Enter, ArrowUp 연속 전송 시 커서 이동 및 탭 열기 정상 작동 자동화 검증 완료.
   2. `tests/test_tree.js` 및 `tests/test_shell_phase_seven.js`, Python 36건 전체 단위 테스트 통과.
+
+### 방향키 2개씩 이동 버그 및 스크롤바 미연동 결함 수정
+
+- 요청: 상/하 방향키로 이동 시 2개씩 이동하며, 화살표로 이동 시 스크롤바와 연동되지 않는 문제 해결 요청.
+- 원인:
+  1. **2개씩 이동 원인**: `treeRoot` 요소의 `keydown` 이벤트 리스너에서 `e.stopPropagation()`을 호출하지 않아 이벤트가 상위 `document`의 전역 키다운 리스너로 버블링됨. 결과적으로 `treeModel.handleKeyDown(e)`가 1회 키 입력당 2번 연속 실행되어 커서가 항상 2칸씩 점프함.
+  2. **스크롤바 미연동 원인**: 커서 이동 시 화면 밖으로 벗어난 행에 대해 DOM 스크롤 조정(`scrollIntoView`)이 호출되지 않아, 스크롤바가 움직이지 않고 선택 행이 뷰포트 아래로 가려짐.
+- 조치:
+  1. `shell/app.js`의 `bindTreeEvents()` 내 `treeRoot` 키다운 핸들러에 `e.stopPropagation()`을 추가하고, `initKeyboardShortcuts()` 전역 리스너에서 `activeEl.id === 'tree-root'`일 때는 중복 실행을 스킵하도록 이중 차단하여 **정확히 1개씩 이동**하도록 수정.
+  2. `shell/app.js`의 `renderTree()` 끝에서 선택된 행(`.tree-row.selected`)에 대해 `selectedRow.scrollIntoView({ block: 'nearest', inline: 'nearest' })`를 호출하여, 커서가 화면 밖으로 이동할 때 스크롤바가 자동으로 연동되어 따라 내려가거나 올라오도록 구현.
+- 결과:
+  1. 상/하 방향키를 누를 때마다 커서가 정확히 1개 행씩 위아래로 이동함.
+  2. 항목이 많아 스크롤바가 생긴 상태에서 방향키로 계속 아래로 이동하면 스크롤바가 부드럽게 따라 내려가며, `Home`/`End` 키 입력 시에도 맨 위/맨 아래로 즉시 스크롤 연동됨.
+- 검증:
+  1. Puppeteer 브라우저 환경에서 ArrowDown 1회당 1행씩 이동(`file_0 -> file_1 -> file_2`) 검증 통과.
+  2. 80개 항목 fixture에서 50회 연속 아래 이동 시 `scrollTop: 412`로 스크롤 연동 확인, `Home` 키 시 `scrollTop: 0` 복귀 및 `End` 키 시 `scrollTop: 1072` (맨 아래) 연동 완벽 검증.
+  3. Node 및 Python 전체 단위 테스트 정상 통과.

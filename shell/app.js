@@ -650,6 +650,12 @@
     if (newTreeRoot && hadFocus) {
       newTreeRoot.focus();
     }
+
+    // 스크롤 연동: 선택된 행이 뷰포트에 보이도록 스크롤 (block: 'nearest')
+    const selectedRow = newTreeRoot ? newTreeRoot.querySelector('.tree-row.selected') : null;
+    if (selectedRow && typeof selectedRow.scrollIntoView === 'function') {
+      selectedRow.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
   }
 
   function bindTreeEvents() {
@@ -657,6 +663,7 @@
     if (!treeRoot || !treeModel) return;
 
     treeRoot.addEventListener('keydown', async (e) => {
+      e.stopPropagation(); // 상위 document로의 버블링 방지 (2칸 이동 방지)
       await treeModel.handleKeyDown(e);
       updateStatus();
     });
@@ -858,7 +865,10 @@
       // 트리 탐색 키 (FR-18: ArrowDown, ArrowUp, ArrowRight, ArrowLeft, Enter, Home, End)
       const treeNavKeys = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Enter', 'Home', 'End'];
       if (treeNavKeys.includes(e.key) && !e.ctrlKey && !e.altKey) {
-        const isTreeActive = currentFocusArea === 'tree' || activeEl?.id === 'tree-root' || activeEl?.closest('#sidebar');
+        if (activeEl && activeEl.id === 'tree-root') {
+          return; // treeRoot의 keydown 리스너가 이미 처리했으므로 전역에서는 스킵 (2칸 이동 방지)
+        }
+        const isTreeActive = currentFocusArea === 'tree' || activeEl?.closest('#sidebar');
         if (isTreeActive && treeModel) {
           const rows = treeModel.getVisibleRows();
           if (rows.length > 0) {
