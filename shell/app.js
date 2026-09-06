@@ -445,6 +445,13 @@
         explorerToggleBtn.classList.toggle('active', !sidebar.classList.contains('collapsed'));
         persistShell();
       });
+      sidebar.addEventListener('click', () => {
+        currentFocusArea = 'tree';
+        const treeRoot = document.getElementById('tree-root');
+        if (treeRoot && document.activeElement !== treeRoot) {
+          treeRoot.focus();
+        }
+      });
     }
   }
 
@@ -634,8 +641,15 @@
     const container = document.getElementById('sidebar-content');
     if (!container || !treeModel || !window.TreeExplorer) return;
 
+    const hadFocus = (document.activeElement && (document.activeElement.id === 'tree-root' || document.activeElement.closest('#sidebar'))) || currentFocusArea === 'tree';
+
     container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel)}</div>`;
     bindTreeEvents();
+
+    const newTreeRoot = document.getElementById('tree-root');
+    if (newTreeRoot && hadFocus) {
+      newTreeRoot.focus();
+    }
   }
 
   function bindTreeEvents() {
@@ -832,6 +846,33 @@
         e.preventDefault();
         cycleFocusArea(e.shiftKey ? -1 : 1);
         return;
+      }
+
+      // 입력 요소(input, textarea)에 초점이 있으면 통과
+      const activeEl = document.activeElement;
+      const tag = activeEl ? activeEl.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea') {
+        return;
+      }
+
+      // 트리 탐색 키 (FR-18: ArrowDown, ArrowUp, ArrowRight, ArrowLeft, Enter, Home, End)
+      const treeNavKeys = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Enter', 'Home', 'End'];
+      if (treeNavKeys.includes(e.key) && !e.ctrlKey && !e.altKey) {
+        const isTreeActive = currentFocusArea === 'tree' || activeEl?.id === 'tree-root' || activeEl?.closest('#sidebar');
+        if (isTreeActive && treeModel) {
+          const rows = treeModel.getVisibleRows();
+          if (rows.length > 0) {
+            e.preventDefault();
+            treeModel.handleKeyDown(e).then(() => {
+              updateStatus();
+              const treeRoot = document.getElementById('tree-root');
+              if (treeRoot && document.activeElement !== treeRoot) {
+                treeRoot.focus();
+              }
+            });
+            return;
+          }
+        }
       }
 
       // 예약된 11개 외의 키는 그대로 통과(보기에 전달)

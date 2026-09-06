@@ -342,13 +342,20 @@
   2. `tests/test_shell_phase_seven.js`에 `TreeModel.prototype.openRowTab` 고정 승격 단위 테스트 추가 및 통과.
   3. Python 36건 및 Node 전체 단위 테스트 정상 통과.
 
-### 트리 키보드 탐색(FR-18) 초점 링 및 마우스 연계 보완
+### 탐색기 트리 키보드 탐색(FR-18) 포커스 유실 및 전역 키 연동 결함 수정
 
-- 요청: 탐색기의 키보드 기능 구현 여부 및 사용자 확인 방법 안내 요청.
-- 내용:
-  1. 탐색기 트리 행 클릭 시 `#tree-root`에 브라우저 키보드 포커스(`treeRoot.focus()`)가 자동으로 연결되도록 보완하여, 마우스 클릭 직후 곧바로 키보드 방향키 조작이 동작하도록 개선.
-  2. 트리에 포커스가 진입했을 때 `cursorPath`가 비어있으면 첫 번째 행에 초점 커서를 자동 위치시킴.
-  3. 트리 포커스 시 선택 행에 1px 안쪽 초점 링(`outline: 1px solid var(--color-focus-ring)`)이 선명하게 표시됨을 검증.
+- 요청: 탐색기의 키보드가 전혀 작동하지 않는 문제 해결 요청.
+- 원인:
+  1. 키보드 방향키(`ArrowDown` 등)를 누르면 `handleKeyDown` -> `notifyRender` -> `renderTree()`가 실행되어 `#tree-root` DOM 요소가 새로 교체됨. 이때 이전 요소가 파괴되면서 브라우저 포커스가 즉시 `document.body`로 튕겨나가, 첫 키 입력 직후 포커스가 유실되어 이후 키 입력이 전혀 먹히지 않았음.
+  2. 트리 탐색 키보드 이벤트 리스너가 오직 `#tree-root` 요소에만 걸려 있어, 사용자가 사이드바의 다른 영역을 클릭하거나 창이 초기 로드된 상태(`activeElement`가 `body`)에서는 방향키 입력이 완벽하게 무시되었음.
+- 조치:
+  1. `shell/app.js`의 `renderTree()`에서 재렌더링 이전 포커스 상태를 기억(`hadFocus`)하여, 새로 생성된 `#tree-root` 요소에 `treeRoot.focus()`를 즉시 복원하도록 구현.
+  2. `shell/app.js`의 `initKeyboardShortcuts()` 전역 `keydown` 리스너에 트리 탐색 키(ArrowDown, ArrowUp, ArrowRight, ArrowLeft, Enter, Home, End) 위임 핸들러를 추가하여, 포커스가 `tree-root`에 있지 않더라도 사이드바/트리 활성 상태일 때 방향키 입력이 트리 모델로 안전하게 전달되도록 보장.
+  3. 사이드바 영역 클릭 시에도 `treeRoot.focus()`가 자동 연결되도록 인터랙션 보완.
+- 결과:
+  1. 마우스로 트리를 클릭하지 않고 창을 띄운 직후에도 방향키로 즉시 트리 탐색 가능.
+  2. 방향키를 연속으로 연타하거나 길게 눌러도 포커스가 유지되어 커서가 부드럽게 위아래로 이동함.
+  3. Enter 키를 누르면 선택된 파일이 즉시 고정 탭으로 열림.
 - 검증:
-  1. Puppeteer 브라우저 환경에서 10단계 키보드 네비게이션 시나리오(ArrowDown, ArrowUp, ArrowRight 펼침, ArrowLeft 접기/부모이동, Enter 고정 탭 열기, Home, End) 전건 통과.
-  2. `tests/test_tree.js` 및 `tests/test_phase_six.py` 단위 테스트 통과.
+  1. Puppeteer 브라우저 환경에서 포커스가 `body`인 상태에서 document 레벨 ArrowDown 2회, Enter, ArrowUp 연속 전송 시 커서 이동 및 탭 열기 정상 작동 자동화 검증 완료.
+  2. `tests/test_tree.js` 및 `tests/test_shell_phase_seven.js`, Python 36건 전체 단위 테스트 통과.
