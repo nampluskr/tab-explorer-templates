@@ -103,7 +103,7 @@
             <span id="status-message">Ready</span>
           </div>
           <div class="status-right" id="status-right">
-            <span id="status-app-info">Explorer Templates / v0.1 / 2026-09-06 / Browser</span>
+            <span id="status-app-info">Explorer Templates v0.1 (2026-09-06) - Browser</span>
           </div>
         </footer>
       </div>
@@ -132,12 +132,12 @@
   }
 
   function formatRuntimeText(runtime) {
-    if (!runtime) return 'Explorer Templates / v0.1 / 2026-09-06 / Browser';
+    if (!runtime) return 'Explorer Templates v0.1 (2026-09-06) - Browser';
     const appName = runtime.app_name || 'Explorer Templates';
     const appVer = runtime.app_version || 'v0.1';
     const buildDate = runtime.build_date || new Date().toISOString().slice(0, 10);
     const hostName = runtime.runtime_name || 'Host';
-    return `${appName} / ${appVer} / ${buildDate} / ${hostName}`;
+    return `${appName} ${appVer} (${buildDate}) - ${hostName}`;
   }
 
   async function syncRuntimeInfo() {
