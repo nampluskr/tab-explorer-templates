@@ -288,3 +288,20 @@
 - 조치: v0.1의 상단 6px 라운딩(`border-radius: var(--radius) var(--radius) 0 0`)을 채택하지 않고, 탭 영역(`.tab`) 모서리를 직각(`border-radius: 0`)으로 디자인하도록 결정 사항을 기록하고 향후 탭 스타일링 작업에 반영함.
 - 결과: 탭 상단 곡률 없이 깔끔한 직각 형태의 탭으로 렌더링되도록 규칙 고정.
 - 검증: PROGRESS 기록 및 향후 탭 구현 시 CSS 규칙 준수 예정.
+
+### UI 실행 시 빈 화면(White screen) 결함 긴급 수정
+
+- 요청: 현재 UI를 실행하니 빈 화면만 뜨는데, 이 단계의 결과물이 이렇게 나오는 것이 맞는지 확인 요청.
+- 원인: 
+  1. `shell/app.js`에서 `tabManager.on(...)`을 호출하였으나 `TabManager`에는 `subscribe()`만 존재하여 `TypeError: tabManager.on is not a function` 런타임 예외가 발생함.
+  2. 이로 인해 `app.js` 실행이 도중에 중단되어 `window.__shell` 등록 및 `DOMContentLoaded` 진입점 실행에 도달하지 못함.
+  3. 또한 스크립트 실행 시점에 `document.readyState`가 이미 `complete` 또는 `interactive`인 경우 `DOMContentLoaded` 이벤트가 지나가서 `renderShell()`이 호출되지 않는 문제 존재.
+- 조치:
+  1. `shell/tab_model.js`의 `TabManager` 클래스에 이벤트 이름별 리스너 등록 메서드 `on(eventName, listener)`를 공식 지원하도록 추가.
+  2. `shell/app.js`에서 `tabManager.on` 및 `tabManager.subscribe` 양쪽 모두 지원하도록 방어 로직 적용.
+  3. `shell/app.js` 초기화 진입점에서 `document.readyState === 'loading'`이 아닐 경우 즉시 `initApp()`(테마 적용, renderShell, 단축키 등록)을 호출하도록 보완.
+- 결과: pywebview, Electron, 웹 브라우저(file:// 및 http://) 등 모든 런타임 환경에서 메뉴바, 세로띠, 탐색기 패널, 탭/에디터 영역, 상태표시줄 5개 구역이 즉시 정상 렌더링됨.
+- 검증:
+  1. Puppeteer를 이용한 브라우저 환경 DOM 및 스크린샷 렌더링 검증(hasShellRoot, hasMenuBar, hasActivityRail, hasSidebar, hasWorkspace, hasStatusBar 모두 true).
+  2. `tests/test_shell_phase_seven.js`에 `TabManager.prototype.on` 및 readyState 초기화 단위 테스트 추가 및 통과.
+  3. Python 36건 및 Node 단위 테스트 전체 정상 통과.

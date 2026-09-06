@@ -202,4 +202,23 @@ assert(shellCss.includes('.tab {') && shellCss.includes('border-radius: 0;'), 'T
 
 console.log('  -> TE-035 & TE-036 passed');
 
+// -------------------------------------------------------------
+// 6. TabManager on() method & Shell App initialization robustness
+// -------------------------------------------------------------
+console.log('6. TabManager on() event listener and readyState initialization');
+assert(typeof tabManager.on === 'function', 'TabManager must provide on() method as event alias');
+let onEventCalled = false;
+const unsub = tabManager.on('custom-test', (data) => {
+  if (data && data.flag === 42) onEventCalled = true;
+});
+tabManager._emit('custom-test', { flag: 42 });
+assert(onEventCalled, 'tabManager.on callback must be triggered on emitted event');
+unsub();
+
+// app.js must support both loading and complete readyStates
+assert(appJs.includes("document.readyState === 'loading'"), 'app.js must check document.readyState');
+assert(appJs.includes('initApp()'), 'app.js must call initApp immediately when document already ready');
+
+console.log('  -> TabManager on() and readyState initialization passed');
+
 console.log('\nAll Phase 7 Shell unit tests passed successfully!');

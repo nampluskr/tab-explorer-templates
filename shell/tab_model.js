@@ -127,6 +127,14 @@
       return () => this._listeners.delete(listener);
     }
 
+    on(eventName, listener) {
+      return this.subscribe((evt, detail) => {
+        if (evt === eventName) {
+          listener(detail);
+        }
+      });
+    }
+
     _emit(eventName, detail) {
       for (const listener of this._listeners) {
         try {

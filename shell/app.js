@@ -934,21 +934,38 @@
 
   // 12. 탭 매니저 이벤트 연동
   if (tabManager) {
-    tabManager.on('tab-opened', () => { renderEditor(); updateStatus(); });
-    tabManager.on('tab-closed', () => { renderEditor(); updateStatus(); });
-    tabManager.on('tab-activated', () => { renderEditor(); updateStatus(); });
-    tabManager.on('tab-pinned', () => { renderEditor(); });
-    tabManager.on('tab-moved', () => { renderEditor(); updateStatus(); });
-    tabManager.on('pane-split', () => { renderEditor(); });
-    tabManager.on('pane-unsplit', () => { renderEditor(); });
+    if (typeof tabManager.on === 'function') {
+      tabManager.on('tab-opened', () => { renderEditor(); updateStatus(); });
+      tabManager.on('tab-closed', () => { renderEditor(); updateStatus(); });
+      tabManager.on('tab-activated', () => { renderEditor(); updateStatus(); });
+      tabManager.on('tab-pinned', () => { renderEditor(); });
+      tabManager.on('tab-moved', () => { renderEditor(); updateStatus(); });
+      tabManager.on('pane-split', () => { renderEditor(); });
+      tabManager.on('pane-unsplit', () => { renderEditor(); });
+    } else if (typeof tabManager.subscribe === 'function') {
+      tabManager.subscribe((evt) => {
+        if (['tab-opened', 'tab-closed', 'tab-activated', 'tab-moved'].includes(evt)) {
+          renderEditor();
+          updateStatus();
+        } else if (['tab-pinned', 'pane-split', 'pane-unsplit'].includes(evt)) {
+          renderEditor();
+        }
+      });
+    }
   }
 
   // 초기화 진입점
-  document.addEventListener('DOMContentLoaded', () => {
+  function initApp() {
     applyTheme('gray');
     renderShell();
     initKeyboardShortcuts();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
 
   window.addEventListener('bridge-ready', () => {
     syncRuntimeInfo();
