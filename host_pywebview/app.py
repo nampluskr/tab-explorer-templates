@@ -59,10 +59,40 @@ class BridgeStub:
     pass
 
 
+def _enable_native_window_management(window):
+    """프레임리스 창에 스냅·최대화·복원용 네이티브 동작을 붙인다. Windows에서만 의미가 있다."""
+    native = getattr(window, "native", None)
+    handle = getattr(native, "Handle", None)
+    if handle is None:
+        return
+    try:
+        from host.window_chrome import enable_native_window_management
+
+        enable_native_window_management(handle.ToInt32())
+    except Exception:
+        pass
+
+
+def connect_window_events(window):
+    def on_shown():
+        # pywebview 프레임리스 전환 시 축소되는 현상을 방지하기 위해 shown 이벤트에서 1280x800 재적용
+        window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        _enable_native_window_management(window)
+
+    window.events.shown += on_shown
+
+
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     shell_path = "/shell/index.html"
     webview.settings["DRAG_REGION_SELECTOR"] = ".drag-region"
+    try:
+        from host.window_chrome import patch_drag_move
+
+        patch_drag_move()
+    except Exception:
+        pass
+
     static_app = ProjectStaticApp(project_root, shell_path)
     bridge = BridgeStub()
 
@@ -76,6 +106,7 @@ def main():
         background_color="#353b44",
         js_api=bridge,
     )
+    connect_window_events(window)
     webview.start(debug="--debug" in sys.argv)
 
 
