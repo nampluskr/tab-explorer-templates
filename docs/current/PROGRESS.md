@@ -592,3 +592,23 @@
   - 탐색기 토글 둘레(x = 15, y = 62)가 세로띠 배경과 같은 `RGB(23,27,34)`
   - 상태 표시줄이 `D:\projects\tab_explorer_templates\CLAUDE.md`로 절대 경로를 표시한다
 - 검증: `tests/test_shell_phase_seven.js`에 셋을 판정하는 시험을 더했다 — 세로띠가 `border-right`를 쓰지 않고 `::after`로 그리는지, `.rail-btn.active`에 배경이 없는지, 상태 표시줄이 `toAbsolutePath`를 거치는지. `toAbsolutePath` 자체도 Windows · UNC · POSIX · 루트 없음까지 여덟 경우로 시험한다. 고친 곳을 하나씩 되돌리는 역검증으로 세 시험이 실제로 잡는 것을 확인했다. Node 7종 + Python 36건 전건 통과, pywebview 갈래 화면 확인.
+
+### 계획 외 발견 — progress-check 훅이 settings.json 때문에 매 턴 걸린다
+
+- 무엇을 했나: 훅이 이번 세션에서 네 번 반복해 걸려 `.claude/hooks/progress-check.mjs`를 읽고 판정 조건을 확인했다.
+- 원인: 훅은 "이번 세션에 바뀐 것"이 아니라 `git status --porcelain`, 즉 **작업 트리의 커밋 안 된 변경**을 본다. `docs/`와 `.claude/` 밖 파일이 더러운데 `PROGRESS.md`가 깨끗하면 막는다. `host_pywebview/settings.json`은 앱을 띄울 때마다 다시 쓰이는 런타임 상태라 항상 더럽고, 그래서 **작업을 제대로 기록한 뒤에도 계속 걸린다.** 기록 여부와 무관하게 걸리므로 훅이 막으려던 사고(코드만 고치고 기록을 안 남기는 것)를 판정하지 못하는 상태다.
+- 참고: 훅 주석 스스로 이 상황을 예상하고 있다 — "프로젝트 성격에 따라 시끄러울 수 있다. 그때는 매처를 좁히거나 이 hook 을 뺀다. 빼기로 했다면 왜 뺐는지 DECISIONS.md 에 남긴다."
+- 결과: 아직 고치지 않았다. 둘 중 하나를 사용자가 정해야 한다.
+  1. `host_pywebview/settings.json`을 추적에서 빼고 `.gitignore`에 넣는다 — 근본 원인을 없앤다. FR-26이 이 파일을 "실행 파일 옆 한 파일"로 정했고, 템플릿을 복사해 쓰는 구조라 남의 `root_path`가 저장소에 딸려갈 이유가 없다.
+  2. 훅 매처에서 `host_*/settings.json`을 뺀다 — 훅 주석이 제시한 방법이다. 파일은 계속 추적된다.
+- 검증: 훅 소스를 직접 읽어 판정식(`touchedWork && !touchedProgress`)을 확인했고, 현재 작업 트리에서 더러운 파일이 `host_pywebview/settings.json` 1건뿐임을 `git status --short`로 확인했다.
+
+### 계획 외 개선 — 실행 상태 파일 둘을 추적에서 뺐다
+
+- 요청: 아이콘 테마는 적절한 단계에서 반영하고 계속 진행할 것. 앞서 제시한 세 갈래 중 추천안(추적 해제)으로 처리했다.
+- 조치: `host_pywebview/settings.json`과 `host_electron/settings.json`을 `git rm --cached`로 추적에서 빼고 `.gitignore`에 넣었다. 두 갈래를 함께 처리해 대칭을 유지했다(FR-35).
+- 결과:
+  1. 작업 트리가 앱 실행만으로 더러워지지 않는다. progress-check 훅이 기록 여부를 제대로 판정할 수 있게 됐다.
+  2. 파일 자체는 디스크에 남아 사용자가 고른 설정(`theme: dark` · `icon_theme: vsicons`)이 유지된다.
+  3. 복사해 쓰는 템플릿에 남의 루트 경로가 딸려가지 않는다.
+- 검증: 두 갈래의 설정 읽기 경로를 확인해 파일이 없으면 기본값을 쓰고 새로 만드는 것을 확인했고(`bridge.py` `_load_settings`, `main.js` `readSettings`), 임시 폴더에 Bridge를 세워 실제로 기본값 파일이 생성되는 것(`theme: gray` · `icon_theme: simple` · `root_path: ""`)을 확인했다. FR-26의 "설정 파일이 망가졌으면 기본값으로 떨어지고 앱은 계속 떠야 한다"와 어긋나지 않는다.
