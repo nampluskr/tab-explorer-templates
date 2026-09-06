@@ -466,3 +466,24 @@
   1. Puppeteer 브라우저 환경에서 탭 드래그 앤 드롭(`File1.txt` main -> pane-1 -> main) 및 시각 피드백 클래스(`dragging`, `drag-target`) 실시간 동작 검증 완료.
   2. Puppeteer 브라우저 환경에서 스플릿 해제 및 탭 개별 닫기 시 반대쪽 패널로의 탭 유입 없이 깨끗이 닫히는 동작 검증 완료.
   3. `node tests/test_shell_phase_seven.js` 및 전체 Node 단위 테스트 5종 통과 (FR-4 무지 제약 위반 없음).
+
+### 구현 상태 재점검 — 시험 전건 실행과 탭 순서 바꾸기 요구 충돌 확인
+
+- 요청: 탐색기·탭 영역 기본 기능의 현재 구현 상태 재점검, 그리고 마우스로 열린 탭 순서를 바꾸는 기능 요구.
+- 조치: Node 시험 6종을 전부 실행하고, 조합키 예약 목록을 FR-25와 대조했으며, 요구된 탭 순서 바꾸기가 `SPEC.md` 비목표 9번과 충돌함을 확인했다. 코드는 고치지 않았다.
+- 결과:
+  1. Node 시험 6종(bridge_electron · shell_phase_seven · slots · tab_model · tree · view_lifecycle) 전건 통과.
+  2. Python 시험 7종 36건 전건 통과. 인터프리터는 `C:/winpython/WPy64-31180_cpu/python-3.11.8.amd64/python.exe`(3.11.8)를 쓴다 — PATH의 `python.exe`는 WindowsApps 스텁이라 쓸 수 없다.
+  3. 껍데기가 예약한 조합키는 F11 · Esc · Ctrl+O · Ctrl+W · Ctrl+B · Ctrl+\ · F5 · F6 · Tab/Shift+Tab · Ctrl+Tab/Ctrl+Shift+Tab로 FR-25 목록과 어긋난 항목이 없다.
+  4. 탭을 끌어 순서를 바꾸는 기능은 `SPEC.md` 비목표 9번이 "만들지 않는다"로 명시하고 있어 충돌을 보고했고, **사용자가 이번 버전에서 고려하지 않기로 결정**했다. SPEC 비목표 9번은 그대로 유지되며 구현하지 않는다.
+- 검증: `tests/test_*.js` 6종 각각 실행해 전건 통과 메시지 확인, `shell/app.js`의 전역 keydown 분기를 SPEC FR-25 337~352행과 1:1 대조.
+
+### 계획 외 개선 — Python 시험 실행 경로 확정과 test_phase_seven 임포트 결함 수정
+
+- 요청: Python 환경은 `C:/winpython`의 cpu 환경을 쓰면 된다는 안내.
+- 원인: `tests/test_phase_seven.py`가 `host_pywebview.host.bridge`를 임포트하는데, 저장소 루트를 `sys.path`에 넣지 않아 스크립트를 직접 실행하면 `ModuleNotFoundError: No module named 'host_pywebview'`로 1건이 깨졌다. 다른 시험(`test_bridge_pywebview.py`)은 각자 `sys.path.insert`를 하고 있어 드러나지 않았다.
+- 조치: `tests/test_phase_seven.py`에 `sys`를 임포트하고 `PROJECT_ROOT`가 `sys.path`에 없으면 앞에 넣도록 3줄을 추가했다. 임포트 순서도 알파벳순으로 맞췄다.
+- 결과:
+  1. Python 시험 7종 36건이 전건 통과한다(bridge_pywebview 9 · parity 6 · phase_three 5 · phase_four 4 · phase_five 3 · phase_six 4 · phase_seven 5).
+  2. 이 저장소의 Python 인터프리터는 `C:/winpython/WPy64-31180_cpu/python-3.11.8.amd64/python.exe`(3.11.8)다. PATH의 `python.exe`는 WindowsApps 스텁이라 exit 49로 죽으므로 쓰지 않는다.
+- 검증: 위 인터프리터로 `tests/test_*.py` 7종을 각각 실행해 전부 `OK`와 exit 0을 확인했고, `Ran N tests` 합이 36임을 확인했다. Node 시험 6종도 함께 재실행해 전건 통과를 확인했다.
