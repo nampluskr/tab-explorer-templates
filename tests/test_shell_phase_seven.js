@@ -221,4 +221,24 @@ assert(appJs.includes('initApp()'), 'app.js must call initApp immediately when d
 
 console.log('  -> TabManager on() and readyState initialization passed');
 
+// -------------------------------------------------------------
+// 7. ViewManager mountView() method support
+// -------------------------------------------------------------
+console.log('7. ViewManager mountView() method support');
+const vm = new ViewManager({ tabManager });
+assert(typeof vm.mountView === 'function', 'ViewManager must provide mountView() method');
+const dummyEl = {
+  appendChild: () => {},
+  removeChild: () => {},
+  children: [],
+  style: {}
+};
+const dummyTab = { id: 'dummy-tab-1', kind: 'default', title: 'Dummy' };
+const mountedRec = vm.mountView(dummyEl, dummyTab);
+assert(mountedRec !== null, 'mountView should return view record');
+assert.strictEqual(mountedRec.isActive, true, 'mounted view must be active');
+vm.dispose();
+
+console.log('  -> ViewManager mountView() passed');
+
 console.log('\nAll Phase 7 Shell unit tests passed successfully!');

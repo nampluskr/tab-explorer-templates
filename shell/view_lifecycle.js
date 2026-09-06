@@ -117,9 +117,21 @@
           viewInstance = provider(container, tab);
         }
       } else {
-        // 기본 뷰 스텁
+        // 기본 뷰 스텁 (FR-7, FR-35)
         viewInstance = {
-          mount: () => {},
+          mount: (el) => {
+            if (el && typeof el.appendChild === 'function') {
+              el.innerHTML = `
+                <div class="view-unregistered" style="padding: 24px; color: var(--text-muted); font-size: var(--font-base);">
+                  <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-main); font-size: 14px;">
+                    ${tab.title || tab.id}
+                  </div>
+                  <div>종류: <code>${tab.kind}</code></div>
+                  <div style="margin-top: 4px;">경로: <code>${tab.resource && tab.resource.path ? tab.resource.path : '(없음)'}</code></div>
+                </div>
+              `;
+            }
+          },
           activate: () => {},
           deactivate: () => {},
           resize: () => {},
@@ -154,7 +166,9 @@
     }
 
     activateView(tabId, parentElement = null) {
-      const tab = this.tabManager ? this.tabManager.getTab(tabId) : { id: tabId };
+      const tab = (this.tabManager && typeof this.tabManager.getTab === 'function')
+        ? (this.tabManager.getTab(tabId) || this._instances.get(tabId)?.tab)
+        : (this._instances.get(tabId)?.tab || { id: tabId });
       if (!tab) return null;
 
       const rec = this.getOrCreateView(tab, parentElement);
@@ -183,6 +197,15 @@
       rec.isActive = true;
 
       return rec;
+    }
+
+    mountView(parentElement, tab) {
+      if (!tab) return null;
+      const tabObj = typeof tab === 'object' ? tab : (this.tabManager ? this.tabManager.getTab(tab) : { id: tab });
+      if (!tabObj || !tabObj.id) return null;
+      const rec = this.getOrCreateView(tabObj, parentElement);
+      if (!rec || rec.isDestroyed) return null;
+      return this.activateView(tabObj.id, parentElement);
     }
 
     deactivateView(tabId) {

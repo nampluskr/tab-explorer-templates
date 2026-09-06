@@ -305,3 +305,20 @@
   1. Puppeteer를 이용한 브라우저 환경 DOM 및 스크린샷 렌더링 검증(hasShellRoot, hasMenuBar, hasActivityRail, hasSidebar, hasWorkspace, hasStatusBar 모두 true).
   2. `tests/test_shell_phase_seven.js`에 `TabManager.prototype.on` 및 readyState 초기화 단위 테스트 추가 및 통과.
   3. Python 36건 및 Node 단위 테스트 전체 정상 통과.
+
+### 탭 열기 시 ViewManager mountView 누락 및 기본 뷰 렌더링 결함 수정
+
+- 요청: 탭 구현 및 작동이 정상 작동되어야 하는 것이 맞는지 확인 요청.
+- 원인:
+  1. `shell/app.js`의 `mountActiveViews()`에서 `viewManager.mountView(slotEl, activeTab)`을 호출하도록 작성되어 있었으나, `shell/view_lifecycle.js`의 `ViewManager`에 `mountView` 메서드가 선언되어 있지 않아 탭을 열 때 `TypeError: viewManager.mountView is not a function` 런타임 오류 발생.
+  2. 또한 미등록 뷰 종류(기본 뷰 스텁) 상태일 때 컨테이너 내부에 아무런 텍스트가 마운트되지 않아 탭이 열려도 본문이 빈 화면처럼 보였음.
+- 조치:
+  1. `shell/view_lifecycle.js`의 `ViewManager`에 `mountView(parentElement, tab)` 메서드를 구현하여 `getOrCreateView`와 `activateView`를 원자적으로 연결.
+  2. 기본 뷰 스텁의 `mount(el)`에서 등록되지 않은 뷰 종류라도 탭 제목·종류(kind)·경로(path) 정보가 포함된 안내 뷰를 안전하게 렌더링하도록 개선 (FR-7, FR-35 규약 준수).
+- 결과:
+  1. 트리 노드 클릭, 단축키, 메뉴 등을 통해 탭을 열었을 때 탭 바에 탭이 정상 생성되고 해당 탭의 뷰 컨테이너가 에디터 슬롯에 정상 마운트됨.
+  2. 탭 활성화, 고정(더블클릭), 닫기(X 버튼/Ctrl+W), 에디터 분할(Ctrl+\), 탭 이동(F6) 등 모든 탭 관련 사용자 상호작용이 온전하게 동작함.
+- 검증:
+  1. Puppeteer 브라우저 환경에서 `openTab`, 에디터 2분할, 다중 탭 생성, 탭 바 요소 및 뷰 슬롯 내부 렌더링 검증 통과 및 스크린샷 확인.
+  2. `tests/test_shell_phase_seven.js`에 `ViewManager.prototype.mountView` 단위 테스트 추가 및 통과.
+  3. 전체 단위 테스트 통과 확인.
