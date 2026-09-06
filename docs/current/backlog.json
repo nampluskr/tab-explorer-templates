@@ -676,7 +676,7 @@
     },
     {
       "id": "TE-047",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "v0.1 검사 32건 대응 시험 작성",
@@ -686,7 +686,7 @@
       "note": "v0.1 tests/test_stage_one.py 28건과 test_parity.py 4건에 대응",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-048",
