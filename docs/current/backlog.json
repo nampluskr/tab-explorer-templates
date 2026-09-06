@@ -690,7 +690,7 @@
     },
     {
       "id": "TE-048",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "겉보기 대조 — v0.1과 두 갈래",
@@ -700,7 +700,7 @@
       "note": "픽셀 단위 비교는 판정에 쓰지 않는다. 창 안쪽 1280x800 · 배율 100% 고정",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-049",
