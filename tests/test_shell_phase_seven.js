@@ -75,6 +75,18 @@ const directPreview2 = tabManager.openTab({
 assert.strictEqual(tabManager.getAllTabs().length, 3, 'Direct preview tab must also replace existing preview (tab count stays 3)');
 assert.strictEqual(tabManager.getActiveTab().title, 'direct2');
 
+// 6) TreeModel openRowTab 연동 검증: preview true vs false(고정 승격)
+const tree = new TreeModel({ tabManager });
+tree.openRowTab({ path: 'tree-item.txt', name: 'tree-item.txt', is_dir: false }, true);
+const treeTab = tabManager.getActiveTab();
+assert.strictEqual(treeTab.preview, true, 'Tree openRowTab with true must open preview');
+assert.strictEqual(treeTab.pinned, false, 'Tree openRowTab with true must not be pinned');
+
+// 더블클릭 연동 (false 전달 시 기존 미리보기 탭이 고정 탭으로 승격)
+tree.openRowTab({ path: 'tree-item.txt', name: 'tree-item.txt', is_dir: false }, false);
+assert.strictEqual(treeTab.preview, false, 'Tree openRowTab with false must promote preview to false');
+assert.strictEqual(treeTab.pinned, true, 'Tree openRowTab with false must promote pinned to true');
+
 console.log('  -> TE-037 passed');
 
 // -------------------------------------------------------------

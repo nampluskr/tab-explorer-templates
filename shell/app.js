@@ -546,10 +546,32 @@
     });
 
     // 탭 클릭(활성화) 및 더블클릭(고정) (FR-23, TE-037)
+    let lastTabClickTime = 0;
+    let lastTabClickId = null;
+
     document.querySelectorAll('.tab').forEach((tabEl) => {
       tabEl.addEventListener('click', (e) => {
         e.stopPropagation();
         const tabId = tabEl.dataset.tabId;
+        const now = Date.now();
+
+        // 1) 350ms 이내 빠른 연속 클릭 시 고정 승격
+        if (lastTabClickId === tabId && (now - lastTabClickTime) < 350) {
+          lastTabClickTime = 0;
+          lastTabClickId = null;
+          tabManager.pinTab(tabId);
+          renderEditor();
+          return;
+        }
+        lastTabClickTime = now;
+        lastTabClickId = tabId;
+
+        const activeTab = tabManager.getActiveTab();
+        if (activeTab && activeTab.id === tabId) {
+          currentFocusArea = 'editor';
+          return;
+        }
+
         tabManager.activateTab(tabId);
         currentFocusArea = 'editor';
         renderEditor();
@@ -634,6 +656,9 @@
       treeModel.isFocused = false;
     });
 
+    let lastRowClickTime = 0;
+    let lastRowClickPath = null;
+
     const rows = treeRoot.querySelectorAll('.tree-row');
     rows.forEach((row) => {
       row.addEventListener('click', (e) => {
@@ -645,11 +670,28 @@
         if (isDir) {
           treeModel.toggleExpand(path);
         } else {
-          treeModel.openRowTab({
-            path: path,
-            name: row.querySelector('.tree-label')?.textContent || path,
-            is_dir: false
-          }, true);
+          const now = Date.now();
+          const isDoubleClick = (lastRowClickPath === path && (now - lastRowClickTime) < 350);
+          lastRowClickTime = now;
+          lastRowClickPath = path;
+
+          if (isDoubleClick) {
+            // 더블클릭 시 고정 탭으로 열기 / 승격 (pinned: true, preview: false)
+            treeModel.openRowTab({
+              path: path,
+              name: row.querySelector('.tree-label')?.textContent || path,
+              is_dir: false
+            }, false);
+            lastRowClickTime = 0;
+            lastRowClickPath = null;
+          } else {
+            // 한 번 클릭 시 미리보기 탭으로 열기 (preview: true, pinned: false)
+            treeModel.openRowTab({
+              path: path,
+              name: row.querySelector('.tree-label')?.textContent || path,
+              is_dir: false
+            }, true);
+          }
           renderEditor();
           updateStatus();
         }

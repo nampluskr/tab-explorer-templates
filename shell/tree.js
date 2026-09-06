@@ -292,10 +292,11 @@
 
       if (!mapped) return; // 열지 않음 (null)
 
-      this.tabManager.openTab({
+      return this.tabManager.openTab({
         kind: mapped.kind,
         resource: mapped.resource,
         preview: isPreview,
+        pinned: !isPreview,
         title: mapped.title || row.name
       });
     }

@@ -322,3 +322,22 @@
   1. Puppeteer 브라우저 환경에서 `openTab`, 에디터 2분할, 다중 탭 생성, 탭 바 요소 및 뷰 슬롯 내부 렌더링 검증 통과 및 스크린샷 확인.
   2. `tests/test_shell_phase_seven.js`에 `ViewManager.prototype.mountView` 단위 테스트 추가 및 통과.
   3. 전체 단위 테스트 통과 확인.
+
+### 트리 및 탭 헤더 더블클릭 시 탭 고정(Pin) 기능 결함 수정
+
+- 요청: 탭 고정 기능이 제대로 되지 않음 (한 번 클릭 시 해당 탭에 파일 이름이 나오고, 더블클릭 시 고정되는 기능이 동작하지 않음).
+- 원인:
+  1. `shell/tree.js`의 `openRowTab(row, isPreview = true)`에서 더블클릭 시 `isPreview = false`로 호출되지만, `this.tabManager.openTab` 호출 시 `pinned` 플래그를 전달하지 않아 기본값인 `pinned: false`가 적용됨. 이로 인해 `TabManager.prototype.openTab`의 `if (pinned && existing.preview)` 조건이 거짓이 되어 기존 미리보기 탭이 영원히 고정 탭으로 승격되지 못함.
+  2. 탭 헤더(`.tab`) 클릭 핸들러에서 매번 `renderEditor()`를 호출하여 DOM 요소를 재생성함에 따라 브라우저의 네이티브 `dblclick` 이벤트가 DOM 요소 교체로 인해 유실되는 문제 발생.
+- 조치:
+  1. `shell/tree.js`의 `openRowTab`에서 `pinned: !isPreview`를 명시적으로 전달하여, 더블클릭 시 `pinned: true, preview: false`로 탭이 즉시 고정 승격되도록 수정.
+  2. `shell/app.js`에서 탭 헤더 및 트리 행 클릭 핸들러에 연속 클릭(350ms) 타이머 감지 로직을 추가하여 DOM 재생성과 무관하게 더블클릭 고정 동작을 100% 보장.
+  3. 이미 활성화된 탭 클릭 시 불필요한 `renderEditor()` DOM 파괴를 방지하여 네이티브 `dblclick` 이벤트도 안정적으로 유지.
+- 결과:
+  1. 트리에서 파일을 한 번 클릭하면 해당 파일 이름의 미리보기 탭(`tab preview`, 기울임꼴)이 열리고, 다른 파일을 클릭하면 기존 미리보기 탭이 새 파일로 교체됨 (탭 수 1개 유지).
+  2. 트리의 파일 또는 탭 헤더를 더블클릭하면 즉시 고정 탭(`pinned: true, preview: false`, 일반 글씨체)으로 승격됨.
+  3. 고정된 상태에서 다른 파일을 클릭하면 기존 탭이 닫히지 않고 보존되며 새 미리보기 탭이 추가되어 탭 수가 늘어남.
+- 검증:
+  1. Puppeteer 환경에서 5단계 시나리오(파일1 미리보기 -> 파일2 미리보기 교체 -> 파일2 더블클릭 고정 승격 -> 파일1 클릭 시 탭 2개 유지 -> 탭 헤더 더블클릭 고정 승격) 자동화 테스트 전건 통과.
+  2. `tests/test_shell_phase_seven.js`에 `TreeModel.prototype.openRowTab` 고정 승격 단위 테스트 추가 및 통과.
+  3. Python 36건 및 Node 전체 단위 테스트 정상 통과.
