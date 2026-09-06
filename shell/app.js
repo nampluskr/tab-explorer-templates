@@ -45,9 +45,21 @@
     return nextTheme;
   }
 
+  // 고른 아이콘 테마를 화면에 반영한다 (FR-30).
+  // 자료를 읽어 두고 다시 그린다. 읽지 못하면 해석기가 기본 한 벌로 떨어뜨린다.
   function setIconTheme(iconTheme) {
     currentIconTheme = iconTheme;
     persistShell();
+    renderMenuPopovers();
+
+    const registry = (typeof window !== 'undefined' && window.IconTheme) || null;
+    if (!registry) {
+      renderTree();
+      return Promise.resolve();
+    }
+    return registry.load(iconTheme).then(() => {
+      renderTree();
+    });
   }
 
   function setZenMode(enabled) {
@@ -760,7 +772,7 @@
 
     const hadFocus = (document.activeElement && (document.activeElement.id === 'tree-root' || document.activeElement.closest('#sidebar'))) || currentFocusArea === 'tree';
 
-    container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel)}</div>`;
+    container.innerHTML = `<div class="tree" id="tree-root" tabindex="0" role="tree" aria-label="Explorer Tree">${window.TreeExplorer.renderTreeHtml(treeModel, currentIconTheme)}</div>`;
     bindTreeEvents();
 
     const newTreeRoot = document.getElementById('tree-root');
@@ -1125,6 +1137,10 @@
       }
       if (settings.icon_theme) {
         currentIconTheme = settings.icon_theme;
+        // 다시 켰을 때도 고른 아이콘 테마가 화면에 그대로 나타나야 한다 (FR-26, FR-30)
+        if (typeof window !== 'undefined' && window.IconTheme) {
+          window.IconTheme.load(currentIconTheme).then(() => renderTree());
+        }
       }
       if (settings.sidebar_width) {
         document.documentElement.style.setProperty('--sidebar-width', `${settings.sidebar_width}px`);

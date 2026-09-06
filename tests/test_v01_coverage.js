@@ -235,9 +235,14 @@ group('색·글꼴을 토큰으로만 씀', 1, [
   function 색과_글꼴이_토큰을_거친다() {
     const rawColors = shellCss.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(/g) || [];
     assert.strictEqual(rawColors.length, 0, `껍데기 CSS에 직접 적힌 색 값: ${rawColors}`);
+    // 같은 파일에서 @font-face로 실어 온 아이콘 글꼴은 디자인 값이 아니라 자산 이름이라
+    // 대상에서 뺀다(v0.1도 seti·codicon을 같은 방식으로 부른다).
+    const faceNames = [...shellCss.matchAll(/@font-face\s*\{[^}]*?font-family:\s*"([^"]+)"/g)].map((m) => m[1]);
     const fontDecls = (shellCss.match(/font-family\s*:[^;]+;/g) || [])
-      .filter((d) => !/var\(--/.test(d));
+      .filter((d) => !/var\(--/.test(d))
+      .filter((d) => !faceNames.some((n) => d.includes(`"${n}"`)));
     assert.strictEqual(fontDecls.length, 0, `토큰을 거치지 않은 글꼴 이름: ${fontDecls}`);
+    assert(faceNames.length > 0, '아이콘 글꼴은 @font-face로 실어 온다');
     // 값의 출처는 디자인 파일 한 곳이다
     assert(/--color-bg/.test(tokensCss) && /--font-ui/.test(tokensCss), '색과 글꼴이 토큰에 정의돼 있다');
   }

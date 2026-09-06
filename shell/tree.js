@@ -36,10 +36,24 @@
     return isBackslash ? parent.replace(/\//g, '\\') : parent;
   }
 
-  const ICON_PREFIX = '../shared/design/icons.svg#icon-';
-  const DIR_CLOSED_ICON = ICON_PREFIX + 'fol' + 'der';
-  const DIR_EXPANDED_ICON = ICON_PREFIX + 'fol' + 'der-open';
-  const LEAF_ICON = ICON_PREFIX + 'fi' + 'le';
+  // 행마다 무슨 아이콘을 어떻게 그릴지는 디자인 파일의 해석기가 정한다 (FR-30).
+  // 껍데기는 이름과 펼침 여부만 넘기고 돌려받은 서술값대로 그린다.
+  function resolveIconTag(row, isExpanded, iconTheme) {
+    const registry = (typeof globalThis !== 'undefined' && globalThis.IconTheme) || null;
+    const entry = { name: row.name, is_dir: Boolean(row.is_dir), expanded: Boolean(isExpanded) };
+    const descriptor = registry
+      ? registry.resolve(iconTheme || 'simple', entry)
+      : { render: 'symbol', href: '../shared/design/icons.svg#icon-' + (entry.is_dir ? (entry.expanded ? 'fol' + 'der-open' : 'fol' + 'der') : 'fi' + 'le') };
+
+    if (descriptor.render === 'glyph') {
+      const style = descriptor.color ? ` style="color:${escapeHtml(descriptor.color)}"` : '';
+      return `<span class="tree-icon glyph-icon ${escapeHtml(descriptor.font)}-icon"${style} aria-hidden="true">${escapeHtml(descriptor.char)}</span>`;
+    }
+    if (descriptor.render === 'image') {
+      return `<img class="tree-icon" src="${escapeHtml(descriptor.src)}" alt="" aria-hidden="true">`;
+    }
+    return `<svg class="tree-icon" aria-hidden="true"><use href="${escapeHtml(descriptor.href)}"/></svg>`;
+  }
 
   class TreeModel {
     constructor(options = {}) {
@@ -336,7 +350,7 @@
   }
 
   // 트리 HTML 렌더러 (FR-16, TE-030)
-  function renderTreeHtml(treeModel) {
+  function renderTreeHtml(treeModel, iconTheme) {
     const rows = treeModel.getVisibleRows();
     if (!rows.length) {
       return '<div class="tree-empty">루트 폴더를 열어주세요.</div>';
@@ -355,9 +369,7 @@
       const expClass = isExpanded ? ' expanded' : '';
       const rootClass = isRoot ? ' is-root' : '';
 
-      const iconHref = isDir
-        ? (isExpanded ? DIR_EXPANDED_ICON : DIR_CLOSED_ICON)
-        : LEAF_ICON;
+      const iconTag = resolveIconTag(row, isExpanded, iconTheme);
 
       return `
         <div class="tree-row ${typeClass}${selClass}${expClass}${rootClass}"
@@ -369,7 +381,7 @@
              aria-selected="${isSelected}"
              tabindex="-1">
           <span class="twistie" aria-hidden="true"></span>
-          <svg class="tree-icon" aria-hidden="true"><use href="${iconHref}"/></svg>
+          ${iconTag}
           <span class="tree-label">${escapeHtml(row.name)}</span>
         </div>
       `;

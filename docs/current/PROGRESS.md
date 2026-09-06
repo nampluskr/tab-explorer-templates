@@ -641,3 +641,19 @@
   2. 파일 자체는 디스크에 남아 사용자가 고른 설정(`theme: dark` · `icon_theme: vsicons`)이 유지된다.
   3. 복사해 쓰는 템플릿에 남의 루트 경로가 딸려가지 않는다.
 - 검증: 두 갈래의 설정 읽기 경로를 확인해 파일이 없으면 기본값을 쓰고 새로 만드는 것을 확인했고(`bridge.py` `_load_settings`, `main.js` `readSettings`), 임시 폴더에 Bridge를 세워 실제로 기본값 파일이 생성되는 것(`theme: gray` · `icon_theme: simple` · `root_path: ""`)을 확인했다. FR-26의 "설정 파일이 망가졌으면 기본값으로 떨어지고 앱은 계속 떠야 한다"와 어긋나지 않는다.
+
+### 계획 외 개선 — 아이콘 테마 셋을 실제로 화면에 반영 (FR-30)
+
+- 요청: 아이콘 테마가 고르기만 되고 화면이 바뀌지 않는 문제를 적절한 단계에서 반영할 것. TE-048(겉보기 대조) 착수 전에 처리했다.
+- 원인: `setIconTheme()`이 값 저장만 하고 끝났고, `tree.js`가 아이콘 주소를 모듈 로드 시점 상수로 굳혀 두어 어떤 테마를 골라도 단색 한 벌만 나왔다. 반입해 둔 자산(seti · vscode-icons, 8.3MB)을 참조하는 코드가 0건이었다.
+- 조치:
+  1. `shared/design/icon_theme.js`를 새로 만들었다. 트리 행의 이름과 펼침 여부를 받아 "무엇을 어떻게 그릴지" 서술값 하나를 돌려준다 — `{ render: 'symbol' | 'glyph' | 'image', ... }`. 확장자 규칙과 테마 자료 구조를 이 한 곳이 갖는다. 자리 다섯을 늘리지 않고 디자인 파일 쪽에 두어 FR-4(껍데기의 종류 무지)와 D-3(자리는 다섯)을 둘 다 지켰다.
+  2. `shell/tree.js`가 상수 대신 그 서술값대로 그린다. `shell/app.js`의 `setIconTheme()`이 자료를 읽고 다시 그리며, 저장된 값도 시작할 때 복원해 반영한다.
+  3. `shell/shell.css`에 seti · codicon `@font-face`와 글리프 · 그림 아이콘 스타일을 더했다(v0.1 structure.css 104~118행과 같은 방식).
+  4. 두 테마 모두 흔한 확장자(md · js · py 등)를 `languageIds`로 잇는데 그 표는 편집기가 대주는 것이라 테마 파일에 없다. 해석기에 확장자→언어 이름 표를 두어 다리를 놓았다. 이것이 없으면 가장 흔한 파일들이 전부 기본 아이콘으로 떨어져 고른 의미가 없다.
+- 결과: 실물에서 세 테마가 서로 다르게 그려진다.
+  - Simple `[icon-folder-open, icon-folder, icon-file × 3]`
+  - VS Code Built-in `[codicon eaf7, codicon ea83, seti e04d, e07b, e051]`
+  - VS Code Icons `[default_folder_opened.svg, folder_type_src.svg, file_type_markdown.svg, file_type_python.svg, file_type_js.svg]`
+- 부수: 서술값의 필드 이름을 처음 `kind`로 두었더니 FR-4의 종류 비교 검사(`test_phase_six.py`)에 걸렸다. 검사를 느슨하게 하지 않고 필드 이름을 `render`로 바꿨다 — 리소스 종류가 아니라 그리는 방법이라 이름이 맞다.
+- 검증: `tests/test_icon_theme.js`를 새로 써서 여섯 가지를 판정한다 — 세 테마 선택 가능 · 자료 없을 때 기본으로 떨어짐 · 세 테마가 다른 방식으로 그려짐 · 파일 타입마다 다른 아이콘 · 트리가 서술값대로 그림 · 껍데기가 확장자를 알지 못함. 가리키는 SVG 파일이 실제로 있는지도 확인한다. pywebview 갈래를 띄워 VS Code Icons(저장값 복원)와 VS Code Built-in을 화면으로 확인했다. Node 11종 + Python 36건 + Electron 공개 동작 시험 전건 통과.
