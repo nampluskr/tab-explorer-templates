@@ -88,3 +88,10 @@
 - 조치: pywebview가 Windows에서 프레임리스(WinForms FormBorderStyle.None)로 전환되며 초기 외곽 크기가 축소되는 문제를 해결하기 위해, host_pywebview/host/window_chrome.py(Aero Snap/네이티브 창 관리 및 patch_drag_move)를 반입하고 app.py의 shown 이벤트에서 window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)를 다시 적용하도록 구현함.
 - 결과: pywebview 갈래가 렌더링 직후 Electron과 동일한 1280 × 800 크기로 보정되어 두 갈래의 외곽 크기가 완전히 일치함.
 - 검증: host/window_chrome.py 연동 및 app.py 모듈 임포트/shown 이벤트 핸들러 등록 검증 완료.
+
+### 상태표시줄 우측 4개 식별 정보 표시 형식 적용 (프로그램 이름 / 버전 / 날짜 / host 명)
+
+- 요청: 상태표시줄 우측에 표시되는 정보가 "프로그램 이름 / 버전 / 날짜 / host 명" 순서 및 슬래시(/) 구분자여야 하므로 확인 및 적용 요청.
+- 조치: shell/app.js의 formatRuntimeText 및 syncRuntimeInfo를 구현하여 `${app_name} / ${app_version} / ${build_date} / ${runtime_name}` 형식으로 포맷팅하도록 수정함. host_pywebview/app.py의 BridgeStub.get_settings 및 host_electron/host/main.js의 get_settings 브리지와 연동하고, bridge-ready 이벤트 시 동기화되도록 구성함.
+- 결과: pywebview에서는 "Explorer Templates / v0.1 / 2026-09-06 / PyWebView", Electron에서는 "Explorer Templates / v0.1 / 2026-09-06 / Electron", 브라우저 단독 로드 시에는 "Explorer Templates / v0.1 / 2026-09-06 / Browser"로 4개 항목이 정확히 표시됨.
+- 검증: 포맷팅 패턴 및 mock 런타임 데이터 출력 검증 통과.

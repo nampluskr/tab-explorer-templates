@@ -56,7 +56,28 @@ class ProjectStaticApp:
 
 class BridgeStub:
     """최소 브리지 스텁 (Phase 2에서 정식 계약 구현)"""
-    pass
+
+    def get_settings(self):
+        from datetime import date
+        return {
+            "ok": True,
+            "value": {
+                "shell": {
+                    "theme": "gray",
+                    "icon_theme": "simple",
+                    "sidebar_width": 280,
+                    "sidebar_collapsed": False,
+                    "root_path": "",
+                    "recent_folders": []
+                },
+                "runtime": {
+                    "app_name": "Explorer Templates",
+                    "app_version": "v0.1",
+                    "build_date": date.today().isoformat(),
+                    "runtime_name": "PyWebView"
+                }
+            }
+        }
 
 
 def _enable_native_window_management(window):
@@ -80,6 +101,9 @@ def connect_window_events(window):
         _enable_native_window_management(window)
 
     window.events.shown += on_shown
+    window.events._pywebviewready += lambda: window.evaluate_js(
+        "window.bridge=window.pywebview.api;window.dispatchEvent(new Event('bridge-ready'));"
+    )
 
 
 def main():

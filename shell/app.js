@@ -103,7 +103,7 @@
             <span id="status-message">Ready</span>
           </div>
           <div class="status-right" id="status-right">
-            <span id="status-app-info">Explorer Templates | v0.1</span>
+            <span id="status-app-info">Explorer Templates / v0.1 / 2026-09-06 / Browser</span>
           </div>
         </footer>
       </div>
@@ -127,6 +127,35 @@
         explorerToggleBtn.classList.toggle('active', !sidebar.classList.contains('collapsed'));
       });
     }
+
+    syncRuntimeInfo();
+  }
+
+  function formatRuntimeText(runtime) {
+    if (!runtime) return 'Explorer Templates / v0.1 / 2026-09-06 / Browser';
+    const appName = runtime.app_name || 'Explorer Templates';
+    const appVer = runtime.app_version || 'v0.1';
+    const buildDate = runtime.build_date || new Date().toISOString().slice(0, 10);
+    const hostName = runtime.runtime_name || 'Host';
+    return `${appName} / ${appVer} / ${buildDate} / ${hostName}`;
+  }
+
+  async function syncRuntimeInfo() {
+    const infoEl = document.getElementById('status-app-info');
+    if (!infoEl) return;
+
+    if (window.bridge && typeof window.bridge.get_settings === 'function') {
+      try {
+        const res = await window.bridge.get_settings();
+        if (res && res.ok && res.value && res.value.runtime) {
+          infoEl.textContent = formatRuntimeText(res.value.runtime);
+          return;
+        }
+      } catch (e) {
+        console.warn('Failed to fetch runtime info from bridge', e);
+      }
+    }
+    infoEl.textContent = formatRuntimeText(null);
   }
 
   // 초기 실행
@@ -135,11 +164,17 @@
     renderShell();
   });
 
+  window.addEventListener('bridge-ready', () => {
+    syncRuntimeInfo();
+  });
+
   // 외부(테스트 또는 브리지) 노출 API
   window.__shell = {
     getTheme: () => document.documentElement.getAttribute('data-theme'),
     setTheme: (t) => applyTheme(t),
     cycleTheme: cycleTheme,
+    formatRuntimeText: formatRuntimeText,
+    syncRuntimeInfo: syncRuntimeInfo,
     THEMES: THEMES
   };
 })();
