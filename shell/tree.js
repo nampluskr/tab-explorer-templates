@@ -255,7 +255,16 @@
             if (currentRow.is_dir) {
               await this.toggleExpand(currentRow.path);
             } else {
-              this.openRowTab(currentRow, false); // Enter는 고정 열기
+              // FR-23: 첫 번째 Enter는 미리보기 열기(이탤릭), 미리보기 탭에서 Enter를 반복해 누르면 고정 승격
+              const activeTab = this.tabManager ? this.tabManager.getActiveTab() : null;
+              const isCurrentPreview = activeTab && activeTab.preview && !activeTab.pinned &&
+                (activeTab.resource?.path === currentRow.path || activeTab.title === currentRow.name);
+
+              if (isCurrentPreview) {
+                this.openRowTab(currentRow, false); // 두 번째 Enter: 고정(Pinned) 승격
+              } else {
+                this.openRowTab(currentRow, true); // 첫 번째 Enter: 미리보기 열기 (이탤릭 표시)
+              }
             }
           }
           break;

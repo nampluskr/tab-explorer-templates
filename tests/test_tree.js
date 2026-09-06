@@ -166,12 +166,19 @@ const tree = new TreeModel({ bridge, tabManager, slots });
   await tree.handleKeyDown({ key: 'ArrowUp', preventDefault: () => {} });
   assert.strictEqual(tree.cursorPath, visibleRows[lastIndex - 1].path, 'ArrowUp must move cursor up 1 row');
 
-  // Enter 키: 단말 행에서 누르면 탭 열림
+  // Enter 키: 단말 행에서 1회 누르면 미리보기 탭 열림, 2회 누르면 고정 탭 승격
   tree.setCursor('README.md');
   await tree.handleKeyDown({ key: 'Enter', preventDefault: () => {} });
-  assert.strictEqual(tabManager.getAllTabs().length, 1, 'Enter on leaf item must open a tab');
+  assert.strictEqual(tabManager.getAllTabs().length, 1, 'First Enter on leaf item must open preview tab');
   const openedTab = tabManager.getActiveTab();
   assert.strictEqual(openedTab.resource.path, 'README.md', 'Opened tab must match cursor item');
+  assert.strictEqual(openedTab.preview, true, 'First Enter must be preview tab');
+  assert.strictEqual(openedTab.pinned, false, 'First Enter must not be pinned');
+
+  // 2회째 Enter: 고정(Pinned) 승격
+  await tree.handleKeyDown({ key: 'Enter', preventDefault: () => {} });
+  assert.strictEqual(openedTab.preview, false, 'Second Enter must promote preview to false');
+  assert.strictEqual(openedTab.pinned, true, 'Second Enter must promote pinned to true');
 
   // ArrowLeft / ArrowRight 키:
   // docs(폴더)로 커서 이동

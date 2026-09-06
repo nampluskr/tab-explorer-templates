@@ -232,6 +232,7 @@
           if (pinned && existing.preview) {
             existing.pinned = true;
             existing.preview = false;
+            this._emit('tab-pinned', { tab: existing });
           }
           this.activateTab(existing.id);
           return { tab: existing, isNew: false };

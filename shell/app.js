@@ -665,6 +665,7 @@
     treeRoot.addEventListener('keydown', async (e) => {
       e.stopPropagation(); // 상위 document로의 버블링 방지 (2칸 이동 방지)
       await treeModel.handleKeyDown(e);
+      renderEditor();
       updateStatus();
     });
 
@@ -874,6 +875,7 @@
           if (rows.length > 0) {
             e.preventDefault();
             treeModel.handleKeyDown(e).then(() => {
+              renderEditor();
               updateStatus();
               const treeRoot = document.getElementById('tree-root');
               if (treeRoot && document.activeElement !== treeRoot) {

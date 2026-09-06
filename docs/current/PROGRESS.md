@@ -376,3 +376,20 @@
   1. Puppeteer 브라우저 환경에서 ArrowDown 1회당 1행씩 이동(`file_0 -> file_1 -> file_2`) 검증 통과.
   2. 80개 항목 fixture에서 50회 연속 아래 이동 시 `scrollTop: 412`로 스크롤 연동 확인, `Home` 키 시 `scrollTop: 0` 복귀 및 `End` 키 시 `scrollTop: 1072` (맨 아래) 연동 완벽 검증.
   3. Node 및 Python 전체 단위 테스트 정상 통과.
+
+### 키보드 Enter 2단계(1회 미리보기 이탤릭, 2회 고정 승격) 동작 구현
+
+- 요청: 키보드 엔터를 한 번 누르면 마우스 1회 클릭처럼 선택(이탤릭 표시의 미리보기 탭)되고, 선택된 파일에서 한 번 더 엔터를 눌러야 고정(Pinned)되도록 동작 수정 요청.
+- 원인: `shell/tree.js`의 `handleKeyDown` 내 `case 'Enter'`에서 파일 행일 때 무조건 `openRowTab(currentRow, false)`(즉 `pinned: true`)로 호출되어 1회 엔터로 바로 고정되었음.
+- 조치:
+  1. `shell/tree.js`의 `case 'Enter'`를 수정하여, 현재 활성 탭이 해당 파일의 미리보기 탭(`isCurrentPreview`)인지 확인.
+  2. 아직 미리보기 탭이 아니면 1회째 Enter로 `openRowTab(currentRow, true)`(미리보기 열기, `preview: true, pinned: false`)를 호출하여 이탤릭 표시의 미리보기 탭 생성.
+  3. 이미 미리보기 탭으로 열려 있는 상태에서 동일 파일에 다시 Enter를 누르면 `openRowTab(currentRow, false)`(고정 승격, `pinned: true, preview: false`)를 호출하여 고정 탭으로 승격.
+  4. `shell/tab_model.js`의 `openTab`에서 승격 발생 시 `tab-pinned` 이벤트를 발생시키고, `shell/app.js`에서 키 입력 후 에디터 뷰 및 상태표시줄을 즉시 렌더링하도록 연동.
+- 결과:
+  1. 파일 노드에서 <kbd>Enter</kbd> 1회 입력 시 마우스 1회 클릭과 동일하게 미리보기 탭(`preview`, 이탤릭체 라벨)으로 열림.
+  2. 같은 파일에서 <kbd>Enter</kbd> 1회 더 입력 시 마우스 더블클릭과 동일하게 고정 탭(`pinned`, 보통 글씨체 라벨)으로 승격됨.
+  3. 다른 파일로 이동 후 <kbd>Enter</kbd>를 누르면 이전 고정 탭은 유지되고 새 파일이 미리보기 탭으로 추가되어 탭 수가 늘어남.
+- 검증:
+  1. Puppeteer 환경에서 1회 엔터(preview: true, pinned: false) -> 2회 엔터(preview: false, pinned: true) -> 다른 파일 엔터(고정 탭 유지 + 새 탭 2개) 자동화 검증 완료.
+  2. `tests/test_tree.js` 및 전체 단위 테스트 통과.
