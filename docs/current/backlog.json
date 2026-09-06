@@ -662,7 +662,7 @@
     },
     {
       "id": "TE-046",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "갈래 삭제 대칭성",
@@ -672,7 +672,7 @@
       "note": "v0.1은 한 방향으로만 성립했다 (D-12)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-047",
