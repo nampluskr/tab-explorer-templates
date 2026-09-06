@@ -242,7 +242,7 @@
     },
     {
       "id": "TE-016",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P3",
       "title": "탭 모델 정의 — 종류 · 식별값 · 대상 설명 · 보기 상태",
@@ -252,11 +252,11 @@
       "note": "종류는 고정 열거형이 아니라 확장 가능한 문자열이다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-017",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P3",
       "title": "탭 식별값과 대상 주소 분리",
@@ -266,11 +266,11 @@
       "note": "터미널이 같은 폴더에서 여러 세션을 여는 요구가 근거",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-018",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P3",
       "title": "대상 설명의 직렬화",
@@ -280,11 +280,11 @@
       "note": "프로세스 객체 · 네이티브 핸들 · 화면 객체를 담지 않는다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-019",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P3",
       "title": "종류를 모르는 열기 · 닫기 · 이동 경로",
@@ -294,7 +294,7 @@
       "note": "이번 버전의 중심. 여기가 새면 나머지가 무의미해진다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-020",

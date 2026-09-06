@@ -168,6 +168,10 @@
     syncRuntimeInfo();
   });
 
+  // 탭 매니저 인스턴스 (Phase 3)
+  const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
+  const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
+
   // 외부(테스트 또는 브리지) 노출 API
   window.__shell = {
     getTheme: () => document.documentElement.getAttribute('data-theme'),
@@ -175,6 +179,9 @@
     cycleTheme: cycleTheme,
     formatRuntimeText: formatRuntimeText,
     syncRuntimeInfo: syncRuntimeInfo,
+    tabManager: tabManager,
+    tabRegistry: tabRegistry,
+    TabModel: typeof window !== 'undefined' ? window.TabModel : null,
     THEMES: THEMES
   };
 })();
