@@ -541,3 +541,35 @@
   2. Node 시험 7종 + Python 시험 7종 36건 전건 통과.
   3. Electron으로 `shell/index.html`을 실제 로드해 `document.write` 로드가 동작하고 고른 프리셋의 소재만 실리는 것을 확인했다(script 목록 대조). `active.js`를 folder로 뒤집어 같은 확인을 반복했고 껍데기는 그대로였다.
   4. **두 갈래 실행 확인(FR-39)** — pywebview 갈래를 실제로 띄워 파일 프리셋의 트리(파일과 폴더 함께 표시)를 확인하고, `AGENTS.md` 행을 눌러 미리보기 탭이 열리며 참조 보기가 **파일 이름만** 출력하는 것을 화면으로 확인했다. Electron 갈래는 위 3번으로 확인했다.
+
+### 계획 외 발견 — 아이콘 테마가 고르기만 되고 화면에 반영되지 않는다 (미해결)
+
+- 요청: "아이콘 테마는 사용불가능한가요?"
+- 조사 결과: 고른 값이 저장·복원만 되고 **화면은 바뀌지 않는다.**
+  1. `shell/app.js`의 `setIconTheme()`이 `currentIconTheme` 대입과 `persistShell()`만 하고 끝난다. 다시 그리지도, 아이콘 소재를 바꾸지도 않는다.
+  2. `shell/tree.js`가 아이콘 주소를 모듈 로드 시점 상수(`DIR_CLOSED_ICON` 등)로 굳혀 두어 어떤 테마를 골라도 `icons.svg`의 단색 한 벌만 나온다.
+  3. 자산은 이미 들어와 있다 — `shared/design/icons/seti/`(theme.json + 폰트), `shared/design/icons/vscode-icons/`(SVG + theme.json), 합계 8.3MB(D-10으로 반입). 그런데 **어떤 코드도 이 파일들을 참조하지 않는다**(`grep -r 'vscode-icons\|seti\|theme.json\|codicon'` → 0건). 확장자 → 아이콘 매핑 로직이 통째로 없다.
+  4. 사용자의 `host_pywebview/settings.json`에 `icon_theme: "vsicons"`가 들어 있다 — 골랐는데 아무 일도 일어나지 않은 상태였다.
+- 판정: FR-30 본문("파일 타입 아이콘은 Simple · VS Code Built-in · VS Code Icons 셋 중 고를 수 있어야 한다")을 충족하지 못한다. 다만 FR-30의 **판정 방법**은 "세 아이콘 테마가 모두 고를 수 있고, 고른 값이 다시 켠 뒤 유지되는지"까지만 요구해서 현재 구현으로도 통과한다. 이 문장이 미구현을 잡지 못했다.
+- 결정: 사용자가 P9 마감 전에 구현하기로 정했다. 매핑 코드를 어디에 둘지(껍데기 / 갈아끼우는 자리 / `shared/design`의 순수 함수)는 FR-4·제약 5·D-3과 충돌하지 않는 자리를 골라야 해서 판단 대기 중이다.
+- 검증: `grep`으로 자산 참조 0건을 확인했고, `setIconTheme` 본문과 `tree.js`의 아이콘 상수를 직접 읽어 반영 경로가 없음을 확인했다. 아직 고치지 않았다.
+
+### 계획 외 기록 — 검증 실행이 host_pywebview/settings.json을 바꾼다
+
+- 조치: 위 P8 검증으로 pywebview 앱을 두 번 띄우면서 `root_path`가 `D:\projects\tab_explorer_templates`로 바뀌고 `recent_folders`에 항목이 늘었다. 사용자가 고른 `theme: dark` · `icon_theme: vsicons`도 함께 들어 있다.
+- 결과: 소재 변경이 아니라 실행으로 생기는 런타임 상태(FR-26이 보존하기로 한 값)라 커밋에서 제외했다. 되돌릴지 커밋할지는 사용자 판단 대기 중이다.
+- 검증: `git status --short`로 커밋 뒤 남은 변경이 이 파일 1건뿐임을 확인했다.
+
+### 계획 외 개선 — v0.1 대조로 탭 안쪽 여백 · 탐색기 머리글 · 메뉴바 우측 아이콘 간격 교정
+
+- 요청: v0.1(`_archive/260904_explorer_templates`)의 탐색기 줄 간격 · 아이콘 인접 간격 · 탭 제목 간격을 확인하고, 그중 **탭 안쪽 여백 · 탐색기 머리글 아이콘 사이 간격 · 메뉴바 우측 아이콘 여백만** 맞출 것.
+- 대조 결과: 탐색기 트리는 v0.1과 이미 완전히 일치했다(행 높이 22 · 좌우 여백 8 · 들여쓰기 깊이×8 · 아이콘→이름 4 · 접기표시→아이콘 0). 어긋난 곳은 탭 영역과 아이콘 버튼 쪽이었다.
+- 조치:
+  1. `.tab`의 안쪽 여백을 `0 var(--space-2)`(양쪽 8px)에서 v0.1과 같은 `0 2px 0 var(--space-1)`(왼쪽 4px · 오른쪽 2px)로 바꿨다.
+  2. `.window-btn`과 `.sidebar-actions .icon-btn`에 `min-width: 0; padding: 0 var(--space-1)`을 얹어 30px 최소폭을 풀었다(v0.1 structure.css 40행). 버튼 폭이 30 → 24px가 된다.
+  3. `.sidebar-actions`에 `display: flex`를 더했다(v0.1 83행). 이것이 빠져 있어 `display: block` 아래에서 inline-flex 버튼 사이에 공백 문자가 끼어 **3.9px가 벌어지고 있었다.** 머리글 아이콘 간격이 어긋난 실제 원인이다.
+- 결과: Electron으로 계산값을 읽어 v0.1 규칙과 대조했다.
+  - 창 제어 버튼 · 머리글 버튼: 폭 24px · `min-width 0` · 좌우 여백 4px, 버튼 사이 간격 **0px**(양쪽 모두)
+  - 탭: `padding-left 4px` · `padding-right 2px` · 높이 26px · 최대폭 180px
+- 검증: Electron에서 `getBoundingClientRect`와 `getComputedStyle`로 실측했고, `.sidebar-actions` 수정 전 3.9 → 수정 후 0으로 바뀌는 것을 확인했다. pywebview 갈래를 띄워 화면으로도 확인했다. Node 7종 + Python 36건 전건 통과.
+- 남긴 것(요청 범위 밖): `.tab-list { gap: 2px }`는 v0.1의 `var(--space-1)`(4px)과 다르고 토큰도 거치지 않는다. `.tab-bar`의 위쪽 여백 4px 누락, v0.1에 없는 `border-bottom`, 닫기 버튼 구조 차이도 남아 있다. 요청이 세 항목뿐이라 손대지 않았고 TE-048에서 판정할 몫이다.

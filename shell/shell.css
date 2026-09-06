@@ -92,6 +92,20 @@ button {
   app-region: no-drag;
 }
 
+/* 메뉴바 우측 창 제어 아이콘과 탐색기 머리글 아이콘은 30px 최소폭을 풀고
+   좌우 여백만으로 간격을 만든다 (v0.1 structure.css 40행) */
+.window-btn,
+.sidebar-actions .icon-btn {
+  min-width: 0;
+  padding: 0 var(--space-1);
+}
+
+/* flex가 아니면 inline-flex 버튼 사이에 공백 문자가 끼어 간격이 벌어진다
+   (v0.1 structure.css 83행) */
+.sidebar-actions {
+  display: flex;
+}
+
 /* 메뉴 팝오버 (FR-22, TE-036) */
 .menu-popover {
   position: absolute;
@@ -495,7 +509,8 @@ button {
   align-items: center;
   height: 26px;
   max-width: 180px;
-  padding: 0 var(--space-2);
+  /* 안쪽 여백은 v0.1과 같게 — 왼쪽 4px, 오른쪽 2px (structure.css 128행) */
+  padding: 0 2px 0 var(--space-1);
   background: transparent;
   color: var(--color-muted);
   border-radius: 0;
