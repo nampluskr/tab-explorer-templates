@@ -704,7 +704,7 @@
     },
     {
       "id": "TE-049",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "마우스 도달 경로 점검과 안내 문서 마감",
@@ -714,7 +714,7 @@
       "note": "조합키로만 닿을 수 있는 기능이 없어야 한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-050",

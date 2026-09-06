@@ -106,10 +106,10 @@ function run() {
   const indexSrc = fs.readFileSync(path.join(ROOT, 'shell', 'index.html'), 'utf8');
   assert(indexSrc.includes('../shared/design/tokens.css'), '껍데기가 공유 디자인 파일을 가리킨다');
 
-  // 두 갈래가 서로를 코드로 참조하지 않는다 — 한쪽을 지워도 남은 쪽이 끊기지 않는다.
-  // 안내 문서(.md)가 반대쪽 갈래를 설명으로 언급하는 것은 실행 의존이 아니므로 뺀다.
-  const pyFiles = readAll(listFiles(path.join(ROOT, 'host_pywebview'), (f) => /\.(py|json)$/.test(f)));
-  const elFiles = readAll(listFiles(path.join(ROOT, 'host_electron'), (f) => /\.(js|json)$/.test(f))
+  // 두 갈래가 서로를 참조하지 않는다 — 한쪽을 지워도 남은 쪽이 끊기지 않는다.
+  // 안내 문서도 함께 본다. 지운 뒤 남은 문서가 없는 폴더를 가리키면 안 된다 (TE-049).
+  const pyFiles = readAll(listFiles(path.join(ROOT, 'host_pywebview'), (f) => /\.(py|json|md)$/.test(f)));
+  const elFiles = readAll(listFiles(path.join(ROOT, 'host_electron'), (f) => /\.(js|json|md)$/.test(f))
     .filter((rel) => !rel.includes('package-lock.json')));
 
   for (const { rel, src } of pyFiles) {
