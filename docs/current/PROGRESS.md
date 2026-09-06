@@ -125,3 +125,10 @@
 - 조치: v0.1 DECISIONS.md의 D-23 및 shell/app.js의 getRuntimeText 정의(`{프로그램 이름} v{major}.{minor} ({빌드일자}) - {갈래 이름}`)를 확인하고, shell/app.js의 formatRuntimeText를 `${appName} ${appVer} (${buildDate}) - ${hostName}` 형식으로 정확히 수정함. 기본 마크업도 동일하게 동기화함.
 - 결과: pywebview에서는 "Explorer Templates v0.1 (2026-09-06) - PyWebView", Electron에서는 "Explorer Templates v0.1 (2026-09-06) - Electron", 브라우저 단독 로드 시에는 "Explorer Templates v0.1 (2026-09-06) - Browser"로 D-23 규격대로 정확히 표시됨.
 - 검증: D-23 포맷 정규식 및 mock 런타임 데이터 출력 검증 통과.
+
+### 탭 상단 모서리 라운딩 제외 (직각 탭 디자인 적용)
+
+- 요청: 탭 상단 모서리의 라운딩은 이 템플릿 프로젝트에서는 하지 않는 것으로 결정.
+- 조치: v0.1의 상단 6px 라운딩(`border-radius: var(--radius) var(--radius) 0 0`)을 채택하지 않고, 탭 영역(`.tab`) 모서리를 직각(`border-radius: 0`)으로 디자인하도록 결정 사항을 기록하고 향후 탭 스타일링 작업에 반영함.
+- 결과: 탭 상단 곡률 없이 깔끔한 직각 형태의 탭으로 렌더링되도록 규칙 고정.
+- 검증: PROGRESS 기록 및 향후 탭 구현 시 CSS 규칙 준수 예정.
