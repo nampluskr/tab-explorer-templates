@@ -142,6 +142,26 @@ remainingPaneB.forEach(t => tabManager.closeTab(t.id));
 assert.strictEqual(tabManager.getPanes().length, 1, 'When all tabs in a pane are closed, split must automatically collapse to 1 pane');
 assert.strictEqual(tabManager.getPanes()[0], paneA, 'Remaining pane must be paneA');
 
+// 6) unsplit: 닫힌 조각의 탭은 반대쪽 패널로 이동되지 않고 온전히 닫혀야 한다 (FR-24)
+tabManager.splitActivePane();
+const currentPanes = tabManager.getPanes();
+assert.strictEqual(currentPanes.length, 2, 'splitActivePane creates 2 panes');
+const splitPaneId = currentPanes[1];
+const targetPaneId = currentPanes[0];
+const tabsInTargetBefore = tabManager.getTabsByPane(targetPaneId).length;
+
+tabManager.unsplit(targetPaneId);
+assert.strictEqual(tabManager.getPanes().length, 1, 'unsplit collapses to 1 pane');
+assert.strictEqual(tabManager.getPanes()[0], targetPaneId, 'Remaining pane is targetPaneId');
+assert.strictEqual(tabManager.getTabsByPane(targetPaneId).length, tabsInTargetBefore, 'Tabs in split pane must be closed and NOT migrated to target pane');
+
+// 7) 탭 마우스 드래그 앤 드롭 이동 지원 검증 (FR-24)
+const appJsSource = fs.readFileSync(path.join(__dirname, '../shell/app.js'), 'utf-8');
+assert(appJsSource.includes('draggable="true"'), 'app.js must set draggable="true" on tabs');
+assert(appJsSource.includes("'dragstart'"), 'app.js must handle dragstart on tabs');
+assert(appJsSource.includes("'dragover'"), 'app.js must handle dragover on editor panes');
+assert(appJsSource.includes("'drop'"), 'app.js must handle drop on editor panes');
+
 console.log('  -> TE-038 passed');
 
 // -------------------------------------------------------------

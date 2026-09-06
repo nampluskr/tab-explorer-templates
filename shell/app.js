@@ -540,9 +540,9 @@
         if (isPreview) tabClasses.push('preview');
 
         return `
-          <div class="${tabClasses.join(' ')}" data-tab-id="${tab.id}" data-pane-id="${paneId}" title="${escapeHtml(tab.title)}">
+          <div class="${tabClasses.join(' ')}" data-tab-id="${tab.id}" data-pane-id="${paneId}" draggable="true" title="${escapeHtml(tab.title)}">
             <span class="tab-label">${escapeHtml(tab.title)}</span>
-            <button class="tab-close" data-close-tab-id="${tab.id}" title="Close Tab" tabindex="-1">
+            <button class="tab-close" data-close-tab-id="${tab.id}" draggable="false" title="Close Tab" tabindex="-1">
               <svg class="icon"><use href="../shared/design/icons.svg#icon-close"/></svg>
             </button>
           </div>
@@ -576,22 +576,86 @@
   function bindEditorEvents() {
     if (!tabManager) return;
 
-    // 패널 클릭 시 활성 조각 변경
+    // 드래그 앤 드롭 상태 (패널 간 탭 마우스 이동 - FR-24)
+    let draggedTabId = null;
+    let draggedSourcePaneId = null;
+
+    // 패널 클릭 시 활성 조각 변경 및 패널 간 탭 드롭 타깃
     document.querySelectorAll('.editor-pane').forEach((paneEl) => {
+      const paneId = paneEl.dataset.paneId;
+
       paneEl.addEventListener('click', () => {
-        const paneId = paneEl.dataset.paneId;
         tabManager.setActivePaneId(paneId);
         currentFocusArea = 'editor';
         renderEditor();
         updateStatus();
       });
+
+      paneEl.addEventListener('dragover', (e) => {
+        if (draggedTabId && draggedSourcePaneId && draggedSourcePaneId !== paneId) {
+          e.preventDefault();
+          if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+          }
+          paneEl.classList.add('drag-target');
+          const tabList = paneEl.querySelector('.tab-list');
+          if (tabList) tabList.classList.add('drag-target');
+        }
+      });
+
+      paneEl.addEventListener('dragleave', (e) => {
+        if (!paneEl.contains(e.relatedTarget)) {
+          paneEl.classList.remove('drag-target');
+          const tabList = paneEl.querySelector('.tab-list');
+          if (tabList) tabList.classList.remove('drag-target');
+        }
+      });
+
+      paneEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        paneEl.classList.remove('drag-target');
+        const tabList = paneEl.querySelector('.tab-list');
+        if (tabList) tabList.classList.remove('drag-target');
+
+        const tabId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggedTabId;
+        if (tabId && tabManager) {
+          const tab = tabManager.getTab(tabId);
+          if (tab && tab.paneId !== paneId) {
+            tabManager.moveTabToPane(tabId, paneId);
+            currentFocusArea = 'editor';
+            renderEditor();
+            updateStatus();
+          }
+        }
+        draggedTabId = null;
+        draggedSourcePaneId = null;
+      });
     });
 
-    // 탭 클릭(활성화) 및 더블클릭(고정) (FR-23, TE-037)
+    // 탭 클릭(활성화), 더블클릭(고정), 드래그 앤 드롭 (FR-23, TE-037, FR-24)
     let lastTabClickTime = 0;
     let lastTabClickId = null;
 
     document.querySelectorAll('.tab').forEach((tabEl) => {
+      tabEl.addEventListener('dragstart', (e) => {
+        draggedTabId = tabEl.dataset.tabId;
+        draggedSourcePaneId = tabEl.dataset.paneId;
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', draggedTabId);
+        }
+        tabEl.classList.add('dragging');
+      });
+
+      tabEl.addEventListener('dragend', () => {
+        tabEl.classList.remove('dragging');
+        draggedTabId = null;
+        draggedSourcePaneId = null;
+        document.querySelectorAll('.editor-pane, .tab-list').forEach((el) => {
+          el.classList.remove('drag-target');
+        });
+      });
+
       tabEl.addEventListener('click', (e) => {
         e.stopPropagation();
         const tabId = tabEl.dataset.tabId;
@@ -630,6 +694,11 @@
 
     // 탭 닫기 버튼
     document.querySelectorAll('.tab-close').forEach((closeBtn) => {
+      closeBtn.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+
       closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const tabId = closeBtn.dataset.closeTabId;

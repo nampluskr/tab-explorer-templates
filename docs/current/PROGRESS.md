@@ -434,3 +434,35 @@
   1. Puppeteer 브라우저 환경에서 실제 SVG 로드 및 스크린샷 렌더링 검증 완료 (`Zen Mode -> Color Theme -> Minimize -> Maximize -> Close` 5개 버튼 우측 상단 정렬 확인).
   2. 브라우저 내 버튼 클릭을 통한 테마 순환(`gray -> dark -> white -> gray`) 및 Zen 모드 토글 / Escape 복원 동작 테스트 통과.
   3. `tests/test_shell_phase_seven.js` 및 전체 단위 테스트 통과 (FR-4 무지 제약 위반 0건 확인).
+### 진행 상태 점검 — 잔여 task 9건 확인 (P8·P9)
+
+- 요청: 현재 과제 진행 상태 확인.
+- 조치: backlog(CLI 관리 목록)·`PLAN.md`·`PROGRESS.md`·`git status`를 대조해 Phase별 완료 현황을 집계했다. 코드·문서 수정은 하지 않았다.
+- 결과:
+  1. 50건 중 41건 done, 9건 todo. P1~P7 전건 완료, 남은 것은 P8(TE-042·043·044)과 P9(TE-045~050)이다.
+  2. 작업 트리의 유일한 변경인 `host_pywebview/settings.json`은 앱 실행으로 생긴 런타임 상태(`root_path`·`icon_theme`·`recent_folders`)이며 소재 변경이 아니다. 되돌릴지 커밋할지는 사용자 판단 대기 중으로 손대지 않았다.
+- 검증: `git status --short`로 변경 파일이 위 1건뿐임을 확인했고, backlog의 status·category 집계가 `PLAN.md`의 Phase 구분과 일치함을 확인했다.
+
+### 탭 마우스 패널 간 드래그 이동 지원 및 스플릿 해제 시 탭 정상 닫기
+
+- 요청:
+  1. 탭 스플릿이 생긴 상태에서 F6 단축키로는 선택된 탭이 좌우로 이동하는데, 마우스로는 이동이 안 되는 문제 해결.
+  2. 2개의 탭(스플릿 창)에서 열린 탭을 닫으면, 그대로 열린 파일 탭도 함께 사라져야 하는데 탭이 없어지면서 다른 탭 영역으로 이동해 버리는 문제 해결.
+- 원인:
+  1. 마우스 탭 이동: `shell/app.js`의 `.tab` 요소에 `draggable="true"` 속성과 `dragstart`/`dragend` 이벤트가 없었고, `.editor-pane` 및 `.tab-list` 컨테이너에 HTML5 `dragover`, `dragleave`, `drop` 이벤트 리스너가 누락되어 마우스 드래그를 통한 패널 간 탭 이동이 지원되지 않았음.
+  2. 스플릿 탭 닫기/해제 시 타 패널 이동: `shell/tab_model.js`의 `unsplit(keepPaneId)` 함수에서 닫히는 패널의 탭들을 `this.closeTab(t.id)`로 닫지 않고 `this.moveTabToPane(t.id, keepPaneId)`를 호출하여 잔여 패널로 강제 이동시키고 있었음. 이로 인해 스플릿 해제 시 파일 탭이 닫히지 않고 반대쪽 탭 바로 옮겨가는 결함이 발생함.
+- 조치:
+  1. `shell/tab_model.js`: `unsplit(keepPaneId)`에서 대상 패널 외의 탭(`otherTabs`) 순회 시 `this.moveTabToPane` 대신 `this.closeTab(t.id)`를 호출하도록 수정하여, 스플릿 닫기 시 해당 탭과 연동된 보기 인스턴스(`destroyView`)가 온전히 파기되고 탭이 깨끗이 사라지도록 처리.
+  2. `shell/app.js`:
+     - `renderEditor()`에서 `.tab` 요소에 `draggable="true"` 속성 부여 및 `.tab-close`에 `draggable="false"` 설정.
+     - `bindEditorEvents()`에 `dragstart`, `dragend`, `dragover`, `dragleave`, `drop` 이벤트 핸들러를 구현하여, 마우스로 탭을 드래그하여 반대쪽 패널에 드롭 시 `tabManager.moveTabToPane(tabId, paneId)`가 호출되고 즉시 재렌더링되도록 구현.
+     - 탭 닫기 버튼(`.tab-close`) 드래그 시 이벤트 전파 차단(`dragstart.preventDefault`).
+  3. `shell/shell.css`: `.tab.dragging`(반투명), `.editor-pane.drag-target`(점선 외곽선), `.tab-list.drag-target`(호버 배경) 드래그 시각 스타일 추가.
+  4. `tests/test_shell_phase_seven.js`: TE-038에 `unsplit` 시 탭이 잔여 패널로 이동하지 않고 온전히 닫히는지 검증하는 테스트 및 `app.js` 내 마우스 드래그 앤 드롭 속성·이벤트 검증 추가.
+- 결과:
+  1. 스플릿 분할 상태에서 탭을 마우스로 드래그하여 반대쪽 패널로 끌어다 놓으면 <kbd>F6</kbd> 키보드 이동과 동일하게 패널 간 즉시 이동함.
+  2. 스플릿 창에서 탭을 닫거나 스플릿 버튼을 눌러 스플릿을 해제하면, 해당 탭이 반대쪽 탭 영역으로 이동하지 않고 깨끗이 함께 닫힘.
+- 검증:
+  1. Puppeteer 브라우저 환경에서 탭 드래그 앤 드롭(`File1.txt` main -> pane-1 -> main) 및 시각 피드백 클래스(`dragging`, `drag-target`) 실시간 동작 검증 완료.
+  2. Puppeteer 브라우저 환경에서 스플릿 해제 및 탭 개별 닫기 시 반대쪽 패널로의 탭 유입 없이 깨끗이 닫히는 동작 검증 완료.
+  3. `node tests/test_shell_phase_seven.js` 및 전체 Node 단위 테스트 5종 통과 (FR-4 무지 제약 위반 없음).

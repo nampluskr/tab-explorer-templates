@@ -390,7 +390,7 @@
 
       const otherTabs = this.getTabsByPane(otherPaneId);
       for (const t of otherTabs) {
-        this.moveTabToPane(t.id, keepPaneId);
+        this.closeTab(t.id);
       }
       this._panes = [keepPaneId];
       this._activePaneId = keepPaneId;

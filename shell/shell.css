@@ -522,6 +522,20 @@ button {
   border-bottom: 1px solid var(--color-focus-ring);
 }
 
+/* 탭 드래그 앤 드롭 시각 효과 (FR-24) */
+.tab.dragging {
+  opacity: 0.4;
+}
+
+.editor-pane.drag-target {
+  outline: 1px dashed var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.tab-list.drag-target {
+  background: var(--color-hover);
+}
+
 /* 미리보기 탭: 이탤릭체 라벨 (FR-23) */
 .tab.preview .tab-label {
   font-style: italic;
