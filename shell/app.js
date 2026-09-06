@@ -650,6 +650,13 @@
     treeRoot.addEventListener('focus', () => {
       treeModel.isFocused = true;
       currentFocusArea = 'tree';
+      if (!treeModel.cursorPath) {
+        const rows = treeModel.getVisibleRows();
+        if (rows.length > 0) {
+          treeModel.cursorPath = rows[0].path;
+          renderTree();
+        }
+      }
     });
 
     treeRoot.addEventListener('blur', () => {
@@ -667,6 +674,9 @@
         const isDir = row.dataset.dir === 'true';
         treeModel.setCursor(path);
         currentFocusArea = 'tree';
+        if (document.activeElement !== treeRoot) {
+          treeRoot.focus();
+        }
         if (isDir) {
           treeModel.toggleExpand(path);
         } else {
