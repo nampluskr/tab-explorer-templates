@@ -129,6 +129,11 @@ button {
   background: var(--color-hover);
 }
 
+/* 상태표시줄 토글 아이콘: 탐색기 아이콘(icon-sidebar)을 반시계 방향 90도 회전하여 하단 바 형태 구현 */
+.statusbar-toggle .icon {
+  transform: rotate(-90deg);
+}
+
 /* 3. 탐색기 (구역 3) */
 .sidebar {
   width: var(--sidebar-width);

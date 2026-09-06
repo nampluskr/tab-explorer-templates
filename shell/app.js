@@ -60,8 +60,8 @@
               </button>
             </div>
             <div class="rail-bottom">
-              <button class="rail-btn" id="btn-rail-theme" title="테마 전환 (gray/dark/white)" tabindex="-1">
-                <svg class="icon"><use href="../shared/design/icons.svg#icon-zen"/></svg>
+              <button class="rail-btn statusbar-toggle active" id="btn-rail-statusbar" title="상태 표시줄 토글" tabindex="-1">
+                <svg class="icon"><use href="../shared/design/icons.svg#icon-sidebar"/></svg>
               </button>
             </div>
           </nav>
@@ -110,10 +110,12 @@
     `;
 
     // 이벤트 리스너 바인딩
-    const themeBtn = document.getElementById('btn-rail-theme');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', () => {
-        cycleTheme();
+    const statusbarToggleBtn = document.getElementById('btn-rail-statusbar');
+    const shellRoot = document.getElementById('shell-root');
+    if (statusbarToggleBtn && shellRoot) {
+      statusbarToggleBtn.addEventListener('click', () => {
+        shellRoot.classList.toggle('status-hidden');
+        statusbarToggleBtn.classList.toggle('active', !shellRoot.classList.contains('status-hidden'));
       });
     }
 
