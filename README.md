@@ -30,3 +30,48 @@
 - **코드 생성기가 아니다.** 자동 생성 마법사나 전용 명령 도구를 만들지 않는다.
 - **요약 지표와 목록 표 위주의 UI는 다루지 않는다.** 그 형태는 별도 프로젝트의 몫이다.
 - **모바일과 클라우드 배포를 고려하지 않는다.** Windows 로컬 실행이 1차 대상이다.
+
+## 프로젝트 결과 (v0.1)
+
+- **리소스 독립적 모듈 껍데기 (`shell/`)**:
+  - 탭 식별자와 대상 리소스 주소를 분리(`tab_model.js`)하여 파일뿐 아니라 폴더, 터미널 세션 등 임의의 대상을 수용
+  - 5대 교체 지점(`slot_registry.js`)과 수명주기를 갖는 컴포넌트 엔진(`view_lifecycle.js`: mount, activate, deactivate, resize, destroy) 완성
+- **파일/폴더 2종 프리셋 (`presets/`)**:
+  - 파일 탐색 기반 앱을 위한 `presets/file`과 폴더 기반 앱을 위한 `presets/folder`를 내장하여 복사 즉시 전환 및 활용 가능
+- **두 갈래 호스트 계층 대칭 완성 (`host_electron`, `host_pywebview`)**:
+  - 11개 브릿지 계약(`docs/BRIDGE-CONTRACT.md`) 및 6대 공통 에러 계약(`docs/ERROR-CONTRACT.md`) 100% 준수
+  - 루트 경로 이탈(`..`), 드라이브 절대경로 및 외부 심볼릭 링크 침범 차단 보안 완비
+- **완성도 높은 시각 체계 및 아이콘 테마 엔진 (`shared/design/`)**:
+  - 디자인 토큰(59종) 및 3대 테마(White, Gray, Dark) 지원
+  - 런타임 해석기(`icon_theme.js`)를 통해 Simple(기본), VS Code Built-in(Seti 글리프), VS Code Icons(SVG) 3종 테마 지원
+- **검증 체계 (`tests/`)**:
+  - 24개 테스트 파일(4,821줄) 구축, 이전 버전(v0.1) 회귀 검증 32건 전건 통과 및 호스트 대칭성 자동 검증
+
+## 어떻게 쓰는가 (활용 방법)
+
+1. **저장소 복제**: 이 템플릿 전체를 새 프로젝트 폴더로 복사합니다.
+2. **호스트 갈래 선택 (불필요한 갈래 삭제)**:
+   - Python / NumPy 직접 연계가 필요한 경우: `host_electron/` 폴더를 삭제하고 `host_pywebview/`를 사용합니다.
+   - Node.js 기반 독립 실행이 필요한 경우: `host_pywebview/` 폴더를 삭제하고 `host_electron/`를 사용합니다.
+3. **프리셋 선택**:
+   - `presets/active.js`에서 사용할 프리셋을 지정합니다 (기본값: `file`, 폴더 기반 도구의 경우 `folder`).
+4. **교체 지점 구현**:
+   - 껍데기 코드는 건드리지 않고, `presets/<선택한 프리셋>/`을 참고하여 5개 교체 지점(`트리 항목`, `행 선택 매핑`, `보기 제공자`, `중복 정책`, `여는 경로`) 중 앱에 필요한 자리를 교체합니다.
+   - 탭 콘텐츠는 수명주기(`mount`, `activate`, `deactivate`, `resize`, `destroy`)를 구현한 View 컴포넌트로 연결합니다.
+5. **실행**:
+   - pywebview 갈래: `pip install -r host_pywebview/requirements.txt` 후 `python host_pywebview/app.py`
+   - Electron 갈래: `cd host_electron && npm install` 후 `npm start`
+   - 자세한 실행 절차와 단축키는 각 갈래의 `README.md`를 참고합니다.
+
+## 요구 환경
+
+- **OS**: Windows 10 이상 (로컬 실행)
+- **NumPy 연계 갈래 (`host_pywebview`)**: Python 3.11 이상, pywebview 6.2.1 이상
+- **NumPy 미연계 갈래 (`host_electron`)**: Node.js v18 이상, Electron 31 이상
+
+## 문서
+
+- 현재 버전 작업 문서: `docs/current/` (BRIEF, DECISIONS, SPEC, PLAN, PROGRESS)
+- 연결 계층 및 오류 규약: `docs/BRIDGE-CONTRACT.md`, `docs/ERROR-CONTRACT.md`
+- 이전 버전(`explorer_templates`) 대비 개선 상세 분석: `docs/COMPARISON.md`
+
