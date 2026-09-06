@@ -168,13 +168,21 @@
     syncRuntimeInfo();
   });
 
+  // 갈아끼우는 자리 다섯 (Phase 5)
+  const slotRegistry = (typeof window !== 'undefined' && window.SlotRegistry)
+    ? new window.SlotRegistry()
+    : null;
+
   // 탭 매니저 인스턴스 (Phase 3)
   const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
   const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
 
   // 보기 수명주기 매니저 인스턴스 (Phase 4)
   const viewManager = (typeof window !== 'undefined' && window.ViewLifecycle && tabManager)
-    ? new window.ViewLifecycle.ViewManager({ tabManager })
+    ? new window.ViewLifecycle.ViewManager({
+        tabManager,
+        providerResolver: (kind) => (slotRegistry ? slotRegistry.getViewProvider(kind) : null)
+      })
     : null;
 
   // 외부(테스트 또는 브리지) 노출 API
@@ -184,9 +192,11 @@
     cycleTheme: cycleTheme,
     formatRuntimeText: formatRuntimeText,
     syncRuntimeInfo: syncRuntimeInfo,
+    slots: slotRegistry,
     tabManager: tabManager,
     tabRegistry: tabRegistry,
     viewManager: viewManager,
+    SlotRegistry: typeof window !== 'undefined' ? window.SlotRegistry : null,
     TabModel: typeof window !== 'undefined' ? window.TabModel : null,
     ViewLifecycle: typeof window !== 'undefined' ? window.ViewLifecycle : null,
     THEMES: THEMES

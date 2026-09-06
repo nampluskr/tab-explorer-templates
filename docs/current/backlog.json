@@ -340,7 +340,7 @@
     },
     {
       "id": "TE-023",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "트리 항목 자리",
@@ -350,11 +350,11 @@
       "note": "아무것도 끼우지 않으면 받은 것을 그대로 표시한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-024",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "행 선택 매핑 자리",
@@ -364,11 +364,11 @@
       "note": "열지 않음을 돌려줄 수 있어야 한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-025",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "보기 제공자 자리",
@@ -378,11 +378,11 @@
       "note": "붙이기 실패는 FR-37 규약대로 알린다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-026",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "중복 정책 자리",
@@ -392,11 +392,11 @@
       "note": "상태를 갖지 않는 판정이다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-027",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "여는 경로 자리",
@@ -406,11 +406,11 @@
       "note": "markdown_browser의 + 버튼이 실증한 요구",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-028",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P5",
       "title": "임의의 새 종류 붙이기 검증 경로",
@@ -420,7 +420,7 @@
       "note": "BRIEF 완료 조건 2번을 판정하는 자리",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-029",

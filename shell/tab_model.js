@@ -182,18 +182,37 @@
         throw new Error('Kind must be a non-empty string');
       }
 
-      const targetPaneId = this._panes.includes(paneId) ? paneId : this._activePaneId;
+      if (paneId && !this._panes.includes(paneId)) {
+        this._panes.push(paneId);
+        this._activeTabIdByPane.set(paneId, null);
+      }
+      const targetPaneId = paneId || this._activePaneId;
       const registeredConfig = this.registry.get(kind) || {};
       const policy = duplicatePolicy || registeredConfig.duplicatePolicy || DUPLICATE_POLICY.REUSE_EXISTING;
       const checker = registeredConfig.equalityChecker;
 
       // 중복 정책 판정 (FR-2, FR-8)
-      if (policy === DUPLICATE_POLICY.REUSE_EXISTING || typeof policy === 'function') {
-        const paneTabs = this.getTabsByPane(targetPaneId);
-        const existing = paneTabs.find((candidate) => {
+      let mode = DUPLICATE_POLICY.REUSE_EXISTING;
+      let scope = 'pane';
+
+      if (typeof policy === 'object' && policy !== null) {
+        mode = policy.mode || DUPLICATE_POLICY.REUSE_EXISTING;
+        scope = policy.scope || 'pane';
+      } else if (typeof policy === 'string') {
+        mode = policy;
+      } else if (typeof policy === 'function') {
+        mode = policy;
+      }
+
+      if (mode === DUPLICATE_POLICY.REUSE_EXISTING || typeof mode === 'function') {
+        const candidatePool = (scope === 'panel' || scope === 'workspace' || scope === 'all')
+          ? this.getAllTabs()
+          : this.getTabsByPane(targetPaneId);
+
+        const existing = candidatePool.find((candidate) => {
           if (candidate.kind !== kind) return false;
-          if (typeof policy === 'function') {
-            return policy(candidate, { kind, resource, paneId: targetPaneId });
+          if (typeof mode === 'function') {
+            return mode(candidate, { kind, resource, paneId: targetPaneId });
           }
           if (typeof checker === 'function') {
             return checker(candidate.resource, resource);
