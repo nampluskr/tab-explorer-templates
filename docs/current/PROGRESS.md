@@ -71,6 +71,36 @@
 - 결과: 저장소를 새로 받은 사람이 각 갈래 폴더의 안내만 보고 앱을 실행할 수 있는 상태가 되었다.
 - 검증: 안내 문서 내용 및 명령어 정합성 확인.
 
+### TE-011 — 연결 계층 동작 목록 정의
+
+- 무엇을 했나: docs/BRIDGE-CONTRACT.md를 작성하여 대상(루트/목록)·창(최소화/최대화/닫기)·설정(읽기/저장/최근폴더)·도메인(call_domain) 4개 묶음의 동작 계약을 정의했다.
+- 결과: 껍데기와 호스트 사이의 계약이 고정되었으며, 껍데기가 도메인을 해석하지 않는 무지 제약이 명시되었다.
+- 검증: 계약 문서 검토 및 요구사항 목록 대조 완료.
+
+### TE-012 — 오류 구분값 한 벌 정의
+
+- 무엇을 했나: docs/ERROR-CONTRACT.md를 작성하여 두 갈래가 공통으로 사용할 오류 코드 6종(ROOT_ESCAPE, NOT_FOUND, PERMISSION_DENIED, READ_FAILED, USER_CANCELLED, UNSUPPORTED_TARGET)을 정의했다.
+- 결과: 연결 계층 오류 발생 시 두 갈래가 동일한 코드와 형식을 반환하여 앱 중단 없이 알림을 띄울 수 있는 기반이 마련되었다.
+- 검증: 오류 코드 목록 및 규약 명세 검증 완료.
+
+### TE-013 — 루트 경계 검증을 연결 계층에 구현
+
+- 무엇을 했나: host_pywebview의 Bridge._resolve_inside_root 및 host_electron의 resolveInsideRoot/isInsideRoot에 루트 밖 경로 3종(.. 포함 경로, 절대 경로, 루트 밖을 가리키는 심볼릭 링크) 검증 로직을 구현하고, 하위 항목 순회 시에도 루트 밖 심볼릭 링크를 차단(blocked: true)하도록 구성했다.
+- 결과: 껍데기를 거치지 않고 연결 계층에 직접 경로를 전달해도 루트 밖 접근이 완벽히 거부되며, 존재하지 않는 경로(NOT_FOUND)나 지원하지 않는 대상(UNSUPPORTED_TARGET)과 명확히 구분된 ROOT_ESCAPE 오류가 반환된다.
+- 검증: test_bridge_pywebview.py 및 test_bridge_electron.js에서 .. 탐색, 드라이브 절대 경로, 외부 심볼릭 링크 직접 호출 테스트 통과.
+
+### TE-014 — host_pywebview 계약 구현
+
+- 무엇을 했나: host_pywebview/host/bridge.py에 계약된 동작 11종(choose_root, set_root, get_recent_folders, clear_recent_folders, list_children, minimize, toggle_maximize, close, get_settings, save_settings, call_domain) 및 window-state 알림을 구현하고, app.py의 BridgeStub을 정식 Bridge로 교체하여 윈도우 이벤트와 연결했다.
+- 결과: pywebview 갈래가 계약에 정의된 모든 메서드와 오류 코드를 온전히 지원하며, 설정 보존 및 최근 폴더 관리도 정상 작동한다.
+- 검증: test_bridge_pywebview.py 단위 테스트(9건) 전건 통과.
+
+### TE-015 — host_electron 계약 구현
+
+- 무엇을 했나: host_electron/host/main.js에 pywebview 갈래와 100% 동일한 계약 메서드 11종 및 오류 처리 로직을 구현하고, 테스트가 가능하도록 handleBridge 및 헬퍼 함수를 모듈로 노출했다.
+- 결과: 두 갈래 간 동작 목록 및 오류 구분값 불일치가 0건이며, Electron 환경에서도 pywebview와 완벽한 대칭성을 확보했다.
+- 검증: test_bridge_electron.js 및 test_parity.py의 6개 패리티 검증 테스트 통과.
+
 ## 2. 계획 외 개선
 
 <!-- 요청 건마다 한 항목: 요청 · 조치 · 결과 · 검증 -->

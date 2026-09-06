@@ -54,30 +54,7 @@ class ProjectStaticApp:
         return [b"" if head else body]
 
 
-class BridgeStub:
-    """최소 브리지 스텁 (Phase 2에서 정식 계약 구현)"""
-
-    def get_settings(self):
-        from datetime import date
-        return {
-            "ok": True,
-            "value": {
-                "shell": {
-                    "theme": "gray",
-                    "icon_theme": "simple",
-                    "sidebar_width": 280,
-                    "sidebar_collapsed": False,
-                    "root_path": "",
-                    "recent_folders": []
-                },
-                "runtime": {
-                    "app_name": "Explorer Templates",
-                    "app_version": "v0.1",
-                    "build_date": date.today().isoformat(),
-                    "runtime_name": "PyWebView"
-                }
-            }
-        }
+from host.bridge import Bridge
 
 
 def _enable_native_window_management(window):
@@ -94,13 +71,16 @@ def _enable_native_window_management(window):
         pass
 
 
-def connect_window_events(window):
+def connect_window_events(window, bridge=None):
     def on_shown():
         # pywebview 프레임리스 전환 시 축소되는 현상을 방지하기 위해 shown 이벤트에서 1280x800 재적용
         window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         _enable_native_window_management(window)
 
     window.events.shown += on_shown
+    if bridge is not None:
+        window.events.maximized += lambda: bridge.notify_window_state(True)
+        window.events.restored += lambda: bridge.notify_window_state(False)
     window.events._pywebviewready += lambda: window.evaluate_js(
         "window.bridge=window.pywebview.api;window.dispatchEvent(new Event('bridge-ready'));"
     )
@@ -117,8 +97,15 @@ def main():
     except Exception:
         pass
 
+    cli_root = None
+    for arg in sys.argv[1:]:
+        if not arg.startswith("--"):
+            cli_root = os.path.abspath(arg)
+            break
+
+    settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
     static_app = ProjectStaticApp(project_root, shell_path)
-    bridge = BridgeStub()
+    bridge = Bridge(settings_path=settings_path, cli_root=cli_root)
 
     window = webview.create_window(
         "Explorer Templates",
@@ -130,8 +117,10 @@ def main():
         background_color="#353b44",
         js_api=bridge,
     )
-    connect_window_events(window)
+    bridge.bind_window(window)
+    connect_window_events(window, bridge)
     webview.start(debug="--debug" in sys.argv)
+
 
 
 if __name__ == "__main__":

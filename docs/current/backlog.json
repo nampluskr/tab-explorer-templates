@@ -172,7 +172,7 @@
     },
     {
       "id": "TE-011",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P2",
       "title": "연결 계층 동작 목록 정의",
@@ -182,11 +182,11 @@
       "note": "껍데기는 도메인 이름 목록을 갖지 않고 인자와 결과를 해석하지 않는다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-012",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P2",
       "title": "오류 구분값 한 벌 정의",
@@ -196,11 +196,11 @@
       "note": "루트 밖 접근 · 없는 대상 · 권한 · 읽기 실패 · 취소 · 지원하지 않는 대상",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-013",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P2",
       "title": "루트 경계 검증을 연결 계층에 구현",
@@ -210,11 +210,11 @@
       "note": "껍데기나 갈아끼우는 자리를 믿고 넘기지 않는다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-014",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P2",
       "title": "host_pywebview 계약 구현",
@@ -224,11 +224,11 @@
       "note": "상태 없이 목록만 채운다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-015",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P2",
       "title": "host_electron 계약 구현",
@@ -238,7 +238,7 @@
       "note": "v0.1의 test_parity가 지키던 것과 같은 성질",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-016",
