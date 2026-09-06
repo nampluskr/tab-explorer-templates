@@ -197,6 +197,22 @@ const tree = new TreeModel({ bridge, tabManager, slots });
   await tree.handleKeyDown({ key: 'ArrowRight', preventDefault: () => {} });
   assert(tree.expanded.has('docs'), 'ArrowRight on collapsed dir must expand it');
 
+  // 하위 요소(docs/spec.md)에서 ArrowLeft 단계별 역탐색:
+  // 1) docs/spec.md -> 부모인 docs로 이동
+  tree.setCursor('docs/spec.md');
+  await tree.handleKeyDown({ key: 'ArrowLeft', preventDefault: () => {} });
+  assert.strictEqual(tree.cursorPath, 'docs', 'ArrowLeft on leaf must move cursor to parent folder');
+  assert(tree.expanded.has('docs'), 'docs should still be expanded when cursor just moved to it');
+
+  // 2) docs (펼쳐짐) -> 폴더 접힘
+  await tree.handleKeyDown({ key: 'ArrowLeft', preventDefault: () => {} });
+  assert(!tree.expanded.has('docs'), 'Second ArrowLeft on parent folder must collapse it');
+  assert.strictEqual(tree.cursorPath, 'docs', 'Cursor must remain on docs when collapsing');
+
+  // 3) docs (접힘) -> 상위 부모('')로 이동
+  await tree.handleKeyDown({ key: 'ArrowLeft', preventDefault: () => {} });
+  assert.strictEqual(tree.cursorPath, '', 'Third ArrowLeft on collapsed folder must jump to its parent');
+
   console.log('  -> TE-032 passed');
 
   // -------------------------------------------------------------
@@ -204,6 +220,7 @@ const tree = new TreeModel({ bridge, tabManager, slots });
   // -------------------------------------------------------------
   console.log('5. TE-033: Disconnection of tree cursor and active tab');
 
+  tree.setCursor('docs');
   // 두 번째 탭 열기 (long.txt)
   tree.openRowTab({ path: 'long.txt', name: 'long.txt', is_dir: false });
   assert.strictEqual(tabManager.getAllTabs().length, 2, 'Should have 2 open tabs');

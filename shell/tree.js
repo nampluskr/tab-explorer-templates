@@ -28,10 +28,12 @@
 
   function getParentPath(path) {
     if (!path) return '';
+    const isBackslash = path.includes('\\');
     const norm = path.replace(/\\/g, '/');
     const idx = norm.lastIndexOf('/');
     if (idx < 0) return '';
-    return norm.slice(0, idx);
+    const parent = norm.slice(0, idx);
+    return isBackslash ? parent.replace(/\//g, '\\') : parent;
   }
 
   const ICON_PREFIX = '../shared/design/icons.svg#icon-';
@@ -237,15 +239,28 @@
         }
         case 'ArrowLeft': {
           event.preventDefault();
-          if (currentRow && currentRow.is_dir && this.expanded.has(currentRow.path)) {
-            // 펼쳐진 디렉토리면 접기
-            this.expanded.delete(currentRow.path);
-            this.notifyRender();
-          } else if (currentRow) {
-            // 접혔거나 자식이 없으면 부모로 이동
-            const parent = getParentPath(currentRow.path);
-            this.cursorPath = parent;
-            this.notifyRender();
+          if (currentRow) {
+            if (currentRow.is_dir && this.expanded.has(currentRow.path)) {
+              // 1) 펼쳐진 디렉토리면 먼저 접기
+              this.expanded.delete(currentRow.path);
+              this.notifyRender();
+            } else if (currentRow.depth > 0) {
+              // 2) 접혔거나 단말(자식 없는 폴더/파일)이면 직속 부모 폴더로 단계별 이동
+              let foundParent = false;
+              for (let i = currentIndex - 1; i >= 0; i--) {
+                if (rows[i].depth === currentRow.depth - 1) {
+                  this.cursorPath = rows[i].path;
+                  this.notifyRender();
+                  foundParent = true;
+                  break;
+                }
+              }
+              if (!foundParent) {
+                const parent = getParentPath(currentRow.path);
+                this.cursorPath = parent;
+                this.notifyRender();
+              }
+            }
           }
           break;
         }

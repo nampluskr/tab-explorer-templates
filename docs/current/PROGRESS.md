@@ -393,3 +393,23 @@
 - 검증:
   1. Puppeteer 환경에서 1회 엔터(preview: true, pinned: false) -> 2회 엔터(preview: false, pinned: true) -> 다른 파일 엔터(고정 탭 유지 + 새 탭 2개) 자동화 검증 완료.
   2. `tests/test_tree.js` 및 전체 단위 테스트 통과.
+
+### 왼쪽 방향키(ArrowLeft) 다층 폴더 역탐색 단계별 상위 이동 결함 수정
+
+- 요청: 키보드로 오른쪽 방향키로 폴더를 열고 하위 폴더로 계속 연 다음 왼쪽 방향키를 누르면 현재폴더 -> 상위 폴더 -> 상위 폴더 순으로 단계별로 이동해야 하는데 이렇게 되지 않는 문제 해결 요청.
+- 원인:
+  1. Windows 환경에서 파일 시스템 경로 구분자로 백슬래시(`\`)가 사용될 때, 기존 `getParentPath` 함수가 슬래시(`/`) 기준으로 부모 경로를 반환하여 실제 `row.path`(백슬래시 포함)와 일치하지 않아 `rows.findIndex`가 부모를 찾지 못함.
+  2. 기존 `case 'ArrowLeft'` 구현에서 펼쳐진 폴더가 아닌 경우 단순 경로 문자열 분할에만 의존하여 상위 이동을 처리함에 따라, 다층 깊이의 평탄화된 트리 목록(`visibleRows`)에서 직속 상위 폴더로 즉시 포커스가 단계별로 점프하지 못했음.
+- 조치:
+  1. `shell/tree.js`의 `getParentPath(path)` 함수에서 원본 경로의 구분자(백슬래시 vs 슬래시)를 감지하여 반환값에도 동일한 구분자를 보존하도록 수정.
+  2. `case 'ArrowLeft'` 처리 로직을 체계적인 단계별 조건으로 개선:
+     - 1단계: 현재 행이 펼쳐진 디렉토리(`currentRow.is_dir && this.expanded.has(currentRow.path)`)이면 폴더를 접음 (`expanded.delete`).
+     - 2단계: 단말(파일 또는 접힌 하위 폴더)이고 `currentRow.depth > 0`인 경우, `rows` 배열을 현재 인덱스 이전부터 역순 순회하여 직속 상위 깊이(`row.depth === currentRow.depth - 1`)를 가진 부모 행을 찾아 커서를 해당 부모로 즉시 이동.
+     - 3단계: 일치하는 행을 찾지 못할 경우 백슬래시 보존 `getParentPath`를 fallback으로 적용.
+- 결과:
+  1. 깊은 하위 폴더 및 파일에 위치한 상태에서 <kbd>ArrowLeft</kbd>를 누르면 직속 상위 부모 폴더로 커서가 1단계씩 올라감.
+  2. 부모 폴더가 펼쳐져 있는 상태에서 <kbd>ArrowLeft</kbd>를 한 번 더 누르면 폴더가 접히고, 접힌 상태에서 다시 <kbd>ArrowLeft</kbd>를 누르면 그 상위 부모 폴더로 이동하여 단계별 역탐색(하위 파일 -> 하위 폴더 -> 접힘 -> 상위 폴더 -> 접힘 -> 루트)이 매끄럽게 동작함.
+- 검증:
+  1. Puppeteer 브라우저 환경에서 4단계 깊이(`folder1\subfolder\deep\file.txt`) 구조를 생성하고, `ArrowRight`로 하위 진입 후 `ArrowLeft` 연속 입력 시 `file.txt -> deep (펼쳐짐) -> deep (접힘) -> subfolder (펼쳐짐) -> subfolder (접힘) -> folder1 (펼쳐짐) -> folder1 (접힘) -> root` 순서로 완벽하게 단계별 역탐색됨을 자동화 검증.
+  2. `tests/test_tree.js`에 다층 트리 단계별 `ArrowLeft` 역탐색(하위 파일 -> 부모 폴더 이동 -> 폴더 접힘 -> 루트 이동) 단위 테스트 케이스 추가 및 전체 통과.
+  3. Node 전체 단위 테스트 6종 통과 확인.
