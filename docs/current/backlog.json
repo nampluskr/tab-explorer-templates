@@ -718,7 +718,7 @@
     },
     {
       "id": "TE-050",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "문서 규약 검사와 버전 마감",
@@ -728,7 +728,7 @@
       "note": "이 항목이 마지막이다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     }
   ]
 }

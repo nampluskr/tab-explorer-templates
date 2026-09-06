@@ -328,6 +328,64 @@
   3. 두 README의 조합키 표가 서로 같고 FR-25와 어긋난 항목이 0건이다.
 - 검증: Node 12종 전건 통과. 시험은 문서가 목록 밖의 조합키를 약속해도 잡고, 두 표가 달라져도 잡는다.
 
+### TE-050 — 문서 규약 검사와 버전 마감
+
+- 무엇을 했나: `tests/test_doc_schema.js`로 `DOC-SCHEMA.md` 9절의 초기화 검사 13건을 자동 판정하게 하고, 모든 FR·NFR의 판정 결과를 아래 표로 남겼다. 시험은 문서를 고치지 않는다 — 걸리는 것을 보고만 한다.
+- 결과: 초기화 검사 13건 전건 통과. `backlog validate` 통과(50 task). 요구 45건(FR 39 · NFR 6)의 판정 결과는 아래 표와 같다.
+- 검증: `node tests/test_doc_schema.js`. 처음에 `## Phase 사이의 의존`(Phase가 아니라 관계 표)을 Phase로 세어 2건이 걸렸고, 숫자가 붙은 것만 Phase로 보도록 좁혀 해결했다.
+
+#### v0.1 요구 판정표
+
+| ID | 요구 | 판정 | 근거 |
+| --- | --- | --- | --- |
+| FR-1 | 리소스 종류가 확장 가능한 문자열 | 충족 | `test_tab_model.js` — 임의 종류 문자열로 탭이 열린다 |
+| FR-2 | 탭 식별값과 리소스 주소 분리 | 충족 | `test_tab_model.js` — 같은 주소로 두 탭, id가 다르다 |
+| FR-3 | 리소스 설명의 직렬화 | 충족 | `test_tab_model.js` — 설명이 값으로 오간다 |
+| FR-4 | 껍데기가 리소스 종류를 모름 | 충족 | `test_phase_three/six/seven.py` · `test_presets.js` — `shell/` 전 파일에 종류 이름 0건 |
+| FR-5 | 트리 항목 자리 | 충족 | `test_slots.js` · `test_presets.js` · `test_fr34_app.js` — 확장자·폴더 필터가 실제 트리에 걸린다 |
+| FR-6 | 행 선택 매핑 자리 | 충족 | `test_presets.js` — 두 프리셋이 반대로 동작. **P8에서 배선 결함을 고친 뒤 성립** |
+| FR-7 | 보기 제공자 자리 | 충족 | `test_view_lifecycle.js` · `test_presets.js` — 등록·교체·미등록 알림 |
+| FR-8 | 중복 정책 자리 | 충족 | `test_presets.js` — 자리→어댑터→탭 모델 배선까지 판정. **P8에서 배선 추가** |
+| FR-9 | 여는 경로 자리 | 충족 | `test_fr34_app.js` — 버튼으로 열고 트리 커서는 그대로. **TE-045에서 다시 그림 통보 추가 후 성립** |
+| FR-10 | 다섯 자리만 갈아끼워 새 종류 | 충족 | `test_slots.js` — 껍데기에 없던 종류가 0줄 수정으로 열린다 |
+| FR-11 | 보기 수명주기 | 충족 | `test_view_lifecycle.js` — 통보 순서와 폐기 후 무동작 |
+| FR-12 | 탭 수명 동안 인스턴스 유지 | 충족 | `test_view_lifecycle.js` — 전환·이동·재렌더에도 생성 1회 |
+| FR-13 | 보기 상태 보관과 전달 | 충족 | `test_view_lifecycle.js` — 껍데기가 내부를 읽지 않고 전달만 |
+| FR-14 | 탐색기 머리글 | 충족 | `test_tree.js` · `test_reachability.js` — 세 버튼, 더보기 없음 |
+| FR-15 | 탐색기 폭 조절 | 충족 | `test_appearance_parity.js` — 손잡이 5px, 겹침 0건 |
+| FR-16 | 트리의 뿌리부터 잎까지 | 충족 | `test_tree.js` — 겉모습 아홉 항목 |
+| FR-17 | 트리 지연 로딩과 기억 | 충족 | `test_v01_coverage.js` — 한 단계만 읽고 접었다 펴도 다시 읽지 않는다 |
+| FR-18 | 트리 탐색 키 | 충족 | `test_tree.js` — 여섯 키, 다층 ArrowLeft 역탐색 |
+| FR-19 | 트리 커서와 활성 탭 분리 | 충족 | `test_fr34_app.js` — 여는 경로로 열어도 커서 불변(움직일 수 있는 값임을 대조) |
+| FR-20 | 루트 경계 검증 | 충족 | `test_bridge_pywebview.py` · `test_bridge_electron.js` — `ROOT_ESCAPE` |
+| FR-21 | 창과 다섯 구역 | 충족 | `test_appearance_parity.js` — 다섯 구역 좌표·크기, 겹침 0건 |
+| FR-22 | 메뉴 줄과 상태 표시줄 | 충족 | `test_shell_phase_seven.js` · `test_shell_public_api.js` — 세 메뉴·네 값·토글 |
+| FR-23 | 미리보기 탭과 고정 탭 | 충족 | `test_v01_coverage.js` — Enter 2단계, 미리보기 1개 유지 |
+| FR-24 | 보기 영역 가르기와 탭 이동 | 충족 | `test_v01_coverage.js` — 조각 간 이동, 셋 이상 안 갈림 |
+| FR-25 | 최소 조합키 집합 | 충족 | `test_reachability.js` — 예약 Ctrl 조합이 목록 안, 문서 표와 일치 |
+| FR-26 | 설정 보존 | 충족 | `test_shell_phase_seven.js` · `test_v01_coverage.js` — 열린 탭 미보존, 기본값 복귀 |
+| FR-27 | CLI 인자로 대상 받아 시작 | 충족 | `test_phase_seven.py` · `test_fr34_app.js` — 루트 인자, 파일 인자는 자리로 |
+| FR-28 | 디자인 파일과 v0.1 값 | 충족 | `test_v01_coverage.js` · `test_appearance_parity.js` — 색·글꼴 토큰만, v0.1과 값 일치 |
+| FR-29 | 테마 세 단계 | 충족 | `test_shell_public_api.js` — 세 번 돌면 처음으로 |
+| FR-30 | 아이콘 규격과 아이콘 테마 셋 | 충족 | `test_icon_theme.js` — 세 테마가 실제로 다르게 그려진다. **P9에서 구현** |
+| FR-31 | 픽셀 격자 정렬 | 충족 | `test_v01_coverage.js` — 상자 높이 짝수, 아이콘 16/1 고정 |
+| FR-32 | 프리셋 둘 | 충족 | `test_presets.js` — 표와 일치, 교체 시 껍데기 0줄 |
+| FR-33 | 참조 보기 | 충족 | `test_presets.js` — 이름/주소만, 읽기 요청 0건 |
+| FR-34 | 실물 앱 요구 셋 | 충족 | `test_fr34_app.js` — 셋 모두, 껍데기 바이트 불변 |
+| FR-35 | 두 갈래 산출과 공유 | 충족 | `test_branch_symmetry.js` — 한쪽 삭제 후 실행 확인(실물) |
+| FR-36 | 연결 계층 계약 | 충족 | `test_parity.py` · `test_v01_coverage.js` — 계약 밖 호출 0건 |
+| FR-37 | 오류 구분 규약 | 충족 | `test_parity.py` — 두 갈래 구분값 일치 |
+| FR-38 | project-workflow 규약 | 충족 | `test_doc_schema.js` — 초기화 검사 13건 |
+| FR-39 | 실행 안내와 보이는 뼈대 | 충족 | 두 갈래 실물 기동 확인, README에 설치·실행·조합키 표 |
+| NFR-1 | 겉보기가 v0.1과 같다 | 충족 | `test_appearance_parity.js` — 59항목 × 3테마 어긋난 값 0건 |
+| NFR-2 | 두 갈래 겉보기 동일성 | 충족 | 같은 소재 로드 + pywebview 구역 경계 픽셀 대조 |
+| NFR-3 | 명도 대비 | **조건부 충족** | 명문 기준(본문 4.5 · 큰 글자와 구분선 3)은 세 테마 통과. **강조색 위 글자가 gray에서 3.78/3.04로 4.5 미만** — 색이 v0.1 값이라 NFR-1·제약 7과 충돌. TE-048에 남긴 미해결 항목 |
+| NFR-4 | 트리 첫 진입 응답성 | 충족 | `test_phase_six.py` — 큰 쪽 중앙값이 작은 쪽의 2배 이내 |
+| NFR-5 | 마우스 도달 가능성 | 충족 | `test_reachability.js` — 열두 가지 모두 눌러서 닿는다 |
+| NFR-6 | 시험 커버리지 | 충족 | `test_v01_coverage.js` — 13묶음 32건, 공개 동작 27개 중 시험 없는 것 0건 |
+
+**판정 요약: 45건 중 44건 충족, 1건 조건부(NFR-3).** NFR-3은 사양 안의 충돌이라 SPEC을 쓰는 사람의 판단이 필요하다.
+
 ## 2. 계획 외 개선
 
 <!-- 요청 건마다 한 항목: 요청 · 조치 · 결과 · 검증 -->
