@@ -172,6 +172,11 @@
   const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
   const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
 
+  // 보기 수명주기 매니저 인스턴스 (Phase 4)
+  const viewManager = (typeof window !== 'undefined' && window.ViewLifecycle && tabManager)
+    ? new window.ViewLifecycle.ViewManager({ tabManager })
+    : null;
+
   // 외부(테스트 또는 브리지) 노출 API
   window.__shell = {
     getTheme: () => document.documentElement.getAttribute('data-theme'),
@@ -181,7 +186,9 @@
     syncRuntimeInfo: syncRuntimeInfo,
     tabManager: tabManager,
     tabRegistry: tabRegistry,
+    viewManager: viewManager,
     TabModel: typeof window !== 'undefined' ? window.TabModel : null,
+    ViewLifecycle: typeof window !== 'undefined' ? window.ViewLifecycle : null,
     THEMES: THEMES
   };
 })();
