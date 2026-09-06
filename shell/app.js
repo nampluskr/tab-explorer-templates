@@ -69,8 +69,12 @@
     : null;
 
   // 3. 탭 매니저 인스턴스 (Phase 3)
+  // 중복 정책은 갈아끼우는 자리가 정한다. 자리에 없으면 종류 등록표로 떨어진다 (FR-8)
   const tabRegistry = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.KindRegistry() : null;
-  const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(tabRegistry) : null;
+  const slotBackedRegistry = (typeof window !== 'undefined' && window.SlotRegistry && tabRegistry)
+    ? window.SlotRegistry.createSlotBackedRegistry(slotRegistry, tabRegistry)
+    : tabRegistry;
+  const tabManager = (typeof window !== 'undefined' && window.TabModel) ? new window.TabModel.TabManager(slotBackedRegistry) : null;
 
   // 4. 보기 수명주기 매니저 인스턴스 (Phase 4)
   const viewManager = (typeof window !== 'undefined' && window.ViewLifecycle && tabManager)
@@ -803,49 +807,46 @@
         if (document.activeElement !== treeRoot) {
           treeRoot.focus();
         }
+        // 펼치고 접는 것은 트리 탐색이고, 탭을 여는 것은 행 선택 매핑 자리의 몫이다.
+        // 껍데기는 어느 행이 열리는지 알지 못하고 자리가 돌려주는 것만 따른다 (FR-4, FR-6)
         if (isDir) {
           treeModel.toggleExpand(path);
-        } else {
-          const now = Date.now();
-          const isDoubleClick = (lastRowClickPath === path && (now - lastRowClickTime) < 350);
-          lastRowClickTime = now;
-          lastRowClickPath = path;
-
-          if (isDoubleClick) {
-            // 더블클릭 시 고정 탭으로 열기 / 승격 (pinned: true, preview: false)
-            treeModel.openRowTab({
-              path: path,
-              name: row.querySelector('.tree-label')?.textContent || path,
-              is_dir: false
-            }, false);
-            lastRowClickTime = 0;
-            lastRowClickPath = null;
-          } else {
-            // 한 번 클릭 시 미리보기 탭으로 열기 (preview: true, pinned: false)
-            treeModel.openRowTab({
-              path: path,
-              name: row.querySelector('.tree-label')?.textContent || path,
-              is_dir: false
-            }, true);
-          }
-          renderEditor();
-          updateStatus();
         }
+
+        const entry = {
+          path: path,
+          name: row.querySelector('.tree-label')?.textContent || path,
+          is_dir: isDir
+        };
+        const now = Date.now();
+        const isDoubleClick = (lastRowClickPath === path && (now - lastRowClickTime) < 350);
+        lastRowClickTime = now;
+        lastRowClickPath = path;
+
+        if (isDoubleClick) {
+          // 더블클릭 시 고정 탭으로 열기 / 승격 (pinned: true, preview: false)
+          treeModel.openRowTab(entry, false);
+          lastRowClickTime = 0;
+          lastRowClickPath = null;
+        } else {
+          // 한 번 클릭 시 미리보기 탭으로 열기 (preview: true, pinned: false)
+          treeModel.openRowTab(entry, true);
+        }
+        renderEditor();
+        updateStatus();
       });
 
       row.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const path = row.dataset.path;
         const isDir = row.dataset.dir === 'true';
-        if (!isDir) {
-          treeModel.openRowTab({
-            path: path,
-            name: row.querySelector('.tree-label')?.textContent || path,
-            is_dir: false
-          }, false);
-          renderEditor();
-          updateStatus();
-        }
+        treeModel.openRowTab({
+          path: path,
+          name: row.querySelector('.tree-label')?.textContent || path,
+          is_dir: isDir
+        }, false);
+        renderEditor();
+        updateStatus();
       });
     });
 
@@ -1163,9 +1164,27 @@
     }
   }
 
+  // 프리셋 끼우기 (FR-32)
+  // 껍데기는 어떤 프리셋이 있는지도, 그것이 무슨 종류를 다루는지도 알지 못한다.
+  // presets/active.js가 가리키는 이름표 하나를 그대로 따를 뿐이다.
+  function installActivePreset() {
+    if (typeof window === 'undefined' || !slotRegistry) return;
+    const catalog = window.Presets;
+    const activeId = window.ACTIVE_PRESET;
+    if (!catalog || !activeId) return;
+
+    const preset = catalog[activeId];
+    if (!preset || typeof preset.install !== 'function') {
+      showToast('프리셋을 찾지 못했습니다: ' + activeId);
+      return;
+    }
+    preset.install(slotRegistry);
+  }
+
   // 초기화 진입점
   function initApp() {
     applyTheme('gray');
+    installActivePreset();
     renderShell();
     initKeyboardShortcuts();
   }

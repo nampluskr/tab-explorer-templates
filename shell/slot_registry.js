@@ -136,5 +136,25 @@
     }
   }
 
+  // 중복 정책 자리를 탭 모델의 종류 등록표 자리에 물리는 어댑터 (FR-8)
+  // 자리에 등록된 정책을 먼저 보고, 없으면 종류 등록표의 값으로 떨어진다.
+  // 껍데기가 이 연결을 갖되 판정 자체는 자리가 한다.
+  function createSlotBackedRegistry(slots, baseRegistry) {
+    if (!baseRegistry) return null;
+    return {
+      get: (kind) => {
+        const base = baseRegistry.get(kind) || {};
+        const fromSlot = slots ? slots.getDuplicatePolicy(kind) : null;
+        return fromSlot ? { ...base, duplicatePolicy: fromSlot } : base;
+      },
+      has: (kind) => baseRegistry.has(kind),
+      register: (kind, options) => baseRegistry.register(kind, options),
+      unregister: (kind) => baseRegistry.unregister(kind),
+      clear: () => baseRegistry.clear()
+    };
+  }
+
+  SlotRegistry.createSlotBackedRegistry = createSlotBackedRegistry;
+
   return SlotRegistry;
 });

@@ -606,7 +606,7 @@
     },
     {
       "id": "TE-042",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P8",
       "title": "파일 프리셋",
@@ -616,11 +616,11 @@
       "note": "갈아끼우는 자리 다섯 중 셋을 미리 채운다 (D-7)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-043",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P8",
       "title": "폴더 프리셋",
@@ -630,11 +630,11 @@
       "note": "기본값은 패널 안에서 판정. 터미널처럼 다른 값이 필요한 앱은 프리셋이 아니라 중복 정책 자리를 갈아끼운다 (D-14)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-044",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P8",
       "title": "참조 보기 둘",
@@ -644,7 +644,7 @@
       "note": "도메인 로직을 담지 않는다. 교체 방법을 보여주는 것이 목적",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-045",

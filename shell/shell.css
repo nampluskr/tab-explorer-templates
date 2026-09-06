@@ -589,6 +589,24 @@ button {
   font-size: 12px;
 }
 
+/* 프리셋의 참조 보기 (FR-33) — 이름 또는 주소 한 줄만 놓인다 */
+.reference-view {
+  padding: var(--space-4);
+  color: var(--color-text);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  word-break: break-all;
+}
+
+.reference-view-name {
+  font-weight: 600;
+}
+
+.reference-view-path {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
 /* Zen 모드 스타일 (FR-25, TE-039) */
 .shell-root.zen {
   grid-template-rows: 0 minmax(0, 1fr) 0;

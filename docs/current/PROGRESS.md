@@ -257,6 +257,24 @@
 - 결과: 두 갈래 모두 실행 명령 뒤에 폴더 경로를 넘기면 즉시 해당 루트로 창이 실행된다.
 - 검증: test_phase_seven.py 내 Python Bridge 및 Node handleBridge 단위 테스트 통과.
 
+### TE-042 — 파일 프리셋
+
+- 무엇을 했나: presets/file/preset.js를 만들어 갈아끼우는 자리 셋을 채웠다. 트리 항목 자리는 파일과 폴더를 모두 표시하고, 행 선택 매핑 자리는 파일 행만 파일 탭으로 매핑하며 폴더 행에는 null(열지 않음)을 돌려준다. 중복 정책 자리는 같은 주소면 기존 탭을 쓰되 판정 범위를 조각(pane)으로 둔다. 어느 프리셋을 쓸지는 presets/active.js의 한 줄이 정하고, 껍데기는 그 이름표만 따라 installActivePreset()으로 끼운다.
+- 결과: FR-32 표의 파일 프리셋 행(파일과 폴더 · 파일 행 → 파일 탭 · 조각 안에서 판정)과 어긋난 항목이 0건이다. presets/active.js의 값을 folder로 바꿔도 shell/ 아래 변경 파일이 0건이다.
+- 검증: tests/test_presets.js에서 세 자리의 값을 FR-32 표와 1:1 대조하고, TreeModel에 실제로 끼워 폴더 행 클릭 시 탭 0건 · 파일 행 클릭 시 탭 1건(kind='file')을 확인했다. 교체 스크립트로 active.js만 바꾼 뒤 shell/ 전 파일을 바이트 대조해 변경 0건임을 확인했다.
+
+### TE-043 — 폴더 프리셋
+
+- 무엇을 했나: presets/folder/preset.js를 만들어 같은 자리 셋을 반대 값으로 채웠다. 트리 항목 자리는 폴더만 남기고, 행 선택 매핑 자리는 폴더 행만 폴더 탭으로 매핑하며 파일 행에는 null을 돌려준다. 중복 정책 자리는 판정 범위를 패널(panel)로 둔다 — 좌우 패널에서 서로 다른 폴더를 여는 앱이 같은 폴더를 양쪽에 두 번 열지 않게 하기 위해서다.
+- 결과: FR-32 표의 폴더 프리셋 행과 어긋난 항목이 0건이다. 두 프리셋의 판정 범위가 실제로 다른 결과를 낸다 — 가른 상태에서 같은 주소를 반대쪽 조각에 열면 조각 판정은 새 탭(2개), 패널 판정은 기존 탭 재사용(1개)이 된다.
+- 검증: tests/test_presets.js에서 폴더 프리셋의 트리에 파일 행이 0건임을 TreeModel 위에서 확인하고, 파일 행 클릭 시 탭 0건 · 폴더 행 클릭 시 탭 1건(kind='folder')을 확인했다. 판정 범위 차이는 TabManager를 가른 상태로 만들어 pane/panel 두 경우의 탭 수를 대조했다.
+
+### TE-044 — 참조 보기 둘
+
+- 무엇을 했나: presets/file/reference_view.js와 presets/folder/reference_view.js를 만들어 각 프리셋이 보기 제공자 자리에 기본으로 얹도록 했다. 파일 참조 보기는 탭 제목(파일 이름)만 출력하고, 폴더 참조 보기는 대상 주소만 출력한다. 둘 다 브릿지를 참조하지 않으며 readFile · listDir · fetch를 쓰지 않는다. 보기 수명주기 계약(createView → mount · activate · deactivate · resize · destroy)을 그대로 따른다.
+- 결과: 파일 참조 보기의 출력이 파일 이름 한 건뿐이고 내용을 읽는 요청이 0건이다. 폴더 참조 보기의 출력이 주소 한 건뿐이다. 참조 보기를 다른 것으로 등록해 바꿔도 껍데기 코드는 바뀌지 않는다.
+- 검증: tests/test_presets.js에서 읽기 호출 횟수를 세는 MockBridge를 물려 두고 보기를 붙인 뒤 readCalls가 0인지 확인했고, 출력 문자열이 이름/주소와 정확히 같은지 대조했다. 폐기 뒤 mount가 화면을 고치지 않는 것도 확인했다. 소스에 읽기 통로(readFile · listDir · fetch · bridge)가 들어 있지 않은지 문자열 검사로 함께 막았다.
+
 ## 2. 계획 외 개선
 
 <!-- 요청 건마다 한 항목: 요청 · 조치 · 결과 · 검증 -->
@@ -487,3 +505,39 @@
   1. Python 시험 7종 36건이 전건 통과한다(bridge_pywebview 9 · parity 6 · phase_three 5 · phase_four 4 · phase_five 3 · phase_six 4 · phase_seven 5).
   2. 이 저장소의 Python 인터프리터는 `C:/winpython/WPy64-31180_cpu/python-3.11.8.amd64/python.exe`(3.11.8)다. PATH의 `python.exe`는 WindowsApps 스텁이라 exit 49로 죽으므로 쓰지 않는다.
 - 검증: 위 인터프리터로 `tests/test_*.py` 7종을 각각 실행해 전부 `OK`와 exit 0을 확인했고, `Ran N tests` 합이 36임을 확인했다. Node 시험 6종도 함께 재실행해 전건 통과를 확인했다.
+
+### 계획 외 개선 — 갈아끼우는 자리 셋이 껍데기에 배선되지 않은 결함 수정
+
+- 요청: 다음 Phase(P8 프리셋) 착수. 착수 과정에서 자리가 실제로는 불리지 않는 것을 발견해 먼저 고쳤다.
+- 원인: Phase 5는 done으로 닫혀 있었으나 `tests/test_slots.js`가 SlotRegistry를 **단독으로만** 시험해서 껍데기와의 배선이 한 번도 확인되지 않았다. 실제로는 셋이 끊겨 있었다.
+  1. `shell/tree.js`의 `openRowTab`이 없는 이름 `slots.mapRowSelect`를 불렀다(실제 이름은 `mapRowSelection`). 조건이 언제나 거짓이라 **행 선택 매핑 자리(FR-6)가 통째로 죽어 있었고**, 껍데기 안의 fallback이 대신 판정하고 있었다.
+  2. 같은 함수가 `if (!row || row.is_dir) return;`으로 폴더 행을 무조건 막았다. 자리가 무엇을 돌려주든 폴더 행은 탭을 열 수 없어 FR-32의 "폴더 행 → 폴더 탭"이 원천 불가였다. `shell/app.js`의 행 클릭 처리도 `is_dir: false`를 하드코딩해 넘기고 있었다.
+  3. `SlotRegistry.registerDuplicatePolicy`가 어디에서도 읽히지 않았다. **중복 정책 자리(FR-8)도 배선이 없어** 프리셋이 판정 범위를 정할 수 없었다.
+- 조치:
+  1. `shell/tree.js` — `mapRowSelection`으로 이름을 맞추고, `is_dir` 하드 차단을 걷어내 종류 판정을 자리에 위임했다. 자리가 없을 때의 기본값만 껍데기에 남겼다.
+  2. `shell/tree.js` Enter 처리 — 펼치고 접는 것(트리 탐색)과 탭을 여는 것(행 선택 매핑)을 분리해 폴더 행에서 둘이 함께 일어날 수 있게 했다. 파일 프리셋에서는 자리가 null을 돌려주므로 기존 동작 그대로다.
+  3. `shell/app.js` — 행 클릭·더블클릭이 실제 `is_dir` 값을 그대로 넘기고 모든 행을 자리에 위임하도록 고쳤다. 폴더 행의 펼침·접힘은 그대로 유지된다.
+  4. `shell/app.js` — 중복 정책을 자리에서 먼저 찾고 없으면 종류 등록표로 떨어지는 registry를 TabManager에 물렸다.
+- 결과:
+  1. 같은 껍데기 코드 위에서 파일 프리셋은 파일 행만, 폴더 프리셋은 폴더 행만 탭을 연다. 프리셋 교체 시 `shell/` 변경 파일이 0건이다.
+  2. 프리셋이 등록한 판정 범위(조각/패널)가 실제 탭 열기 결과를 바꾼다.
+  3. 껍데기의 종류 무지가 유지된다 — `'file'` · `'folder'` · `'terminal'` 문자열이 `shell/` 다섯 파일 어디에도 0건이다.
+- 검증: `tests/test_presets.js`를 새로 써서 SlotRegistry 단독이 아니라 **TreeModel·TabManager에 실제로 끼운 상태**로 판정하게 했다(이번 결함이 단독 시험만 있어서 새어 나갔기 때문이다). Node 7종 + Python 36건 전건 통과, `presets/active.js` 한 줄 교체 후 `shell/` 바이트 대조 변경 0건, pywebview 앱 실기동으로 오류 0줄을 확인했다.
+
+### 계획 외 개선 — Phase 8 적대적 검증에서 나온 지적 넷 반영
+
+- 요청: Phase를 닫기 전 reviewer의 적대적 검증. 완료 조건 다섯의 실체는 충족했으나 제약 위반 둘과 시험 구멍 둘이 나왔다.
+- 원인과 조치:
+  1. **껍데기에 종류 이름이 새어 들어감 (FR-4, 제약 5)** — `shell/index.html`이 `../presets/file/...`, `../presets/folder/...`를 직접 걸어 껍데기가 프리셋을 이름으로 불렀다. `presets/active.js` 하나만 걸도록 바꾸고, active.js가 고른 이름표로 소재 경로를 만들어 파서 단계에서 이어 붙이게 했다(`document.write`, 빌드 단계 없음 — 제약 3). 이제 고른 프리셋의 소재만 로드된다.
+  2. **토큰을 거치지 않은 값 (FR-28, 제약 7)** — `.reference-view`에 `padding: 16px · font-size: 13px · line-height: 1.6`을 직접 적었고, 그중 13px과 1.6은 토큰 집합에 없는 **새로 정한 값**이었다. `var(--space-4) · var(--font-size) · var(--line-height)`로 바꿨다.
+  3. **중복 정책 배선이 시험 밖에 있었음 (FR-8)** — 자리와 탭 모델을 잇는 어댑터가 `shell/app.js`의 IIFE 안에 갇혀 노출도 시험도 되지 않았다. `SlotRegistry.createSlotBackedRegistry(slots, base)`로 꺼내 껍데기가 그것을 쓰게 하고, 시험이 같은 함수를 거쳐 판정하도록 고쳤다.
+  4. **항진명제 단언 둘** — 참조 보기의 읽기 요청 0건 단언이 그 보기가 브릿지를 쥔 적이 없어 언제나 참이었고, 보기 교체 뒤 `app.js` 파일을 대조하는 단언도 아무도 그 파일을 쓰지 않아 언제나 참이었다. 전자는 전역에 읽기 통로(bridge·fetch) 스파이를 깔고 수명주기 전 구간에서 건드리는지 보게, 후자는 ViewManager의 실제 해석 경로로 갈아끼운 보기가 화면에 나오는지 보게 바꿨다.
+- 결과:
+  1. `shell/` 아래 전 파일(index.html 포함)에 종류 이름 문자열이 0건이다. 껍데기가 거는 프리셋 소재는 `active.js` 하나뿐이다.
+  2. 참조 보기 스타일이 tokens.css에 있는 토큰만 쓴다.
+  3. 프리셋이 자리에 등록한 판정 범위가 어댑터를 거쳐 실제 탭 열기 결과를 바꾼다 — 어댑터를 빼면 결과가 달라지는 것으로 배선이 살아 있음을 증명한다.
+- 검증:
+  1. 고친 곳을 하나씩 되돌리는 역검증으로 시험이 실제로 잡는지 확인했다 — `mapRowSelection` 오타 복원 · index.html에 종류 이름 재삽입 · 토큰 대신 13px 재삽입 셋 모두 해당 단언이 실패한다.
+  2. Node 시험 7종 + Python 시험 7종 36건 전건 통과.
+  3. Electron으로 `shell/index.html`을 실제 로드해 `document.write` 로드가 동작하고 고른 프리셋의 소재만 실리는 것을 확인했다(script 목록 대조). `active.js`를 folder로 뒤집어 같은 확인을 반복했고 껍데기는 그대로였다.
+  4. **두 갈래 실행 확인(FR-39)** — pywebview 갈래를 실제로 띄워 파일 프리셋의 트리(파일과 폴더 함께 표시)를 확인하고, `AGENTS.md` 행을 눌러 미리보기 탭이 열리며 참조 보기가 **파일 이름만** 출력하는 것을 화면으로 확인했다. Electron 갈래는 위 3번으로 확인했다.

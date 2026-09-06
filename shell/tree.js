@@ -267,19 +267,21 @@
         case 'Enter': {
           event.preventDefault();
           if (currentRow) {
+            // 펼치고 접는 것은 트리 탐색이고, 탭을 여는 것은 행 선택 매핑 자리의 몫이다.
+            // 둘은 분리되어 있어 같은 행에서 함께 일어날 수 있다 (FR-6, FR-18)
             if (currentRow.is_dir) {
               await this.toggleExpand(currentRow.path);
-            } else {
-              // FR-23: 첫 번째 Enter는 미리보기 열기(이탤릭), 미리보기 탭에서 Enter를 반복해 누르면 고정 승격
-              const activeTab = this.tabManager ? this.tabManager.getActiveTab() : null;
-              const isCurrentPreview = activeTab && activeTab.preview && !activeTab.pinned &&
-                (activeTab.resource?.path === currentRow.path || activeTab.title === currentRow.name);
+            }
 
-              if (isCurrentPreview) {
-                this.openRowTab(currentRow, false); // 두 번째 Enter: 고정(Pinned) 승격
-              } else {
-                this.openRowTab(currentRow, true); // 첫 번째 Enter: 미리보기 열기 (이탤릭 표시)
-              }
+            // FR-23: 첫 번째 Enter는 미리보기 열기(이탤릭), 미리보기 탭에서 Enter를 반복해 누르면 고정 승격
+            const activeTab = this.tabManager ? this.tabManager.getActiveTab() : null;
+            const isCurrentPreview = activeTab && activeTab.preview && !activeTab.pinned &&
+              (activeTab.resource?.path === currentRow.path || activeTab.title === currentRow.name);
+
+            if (isCurrentPreview) {
+              this.openRowTab(currentRow, false); // 두 번째 Enter: 고정(Pinned) 승격
+            } else {
+              this.openRowTab(currentRow, true); // 첫 번째 Enter: 미리보기 열기 (이탤릭 표시)
             }
           }
           break;
@@ -304,14 +306,15 @@
     }
 
     openRowTab(row, isPreview = true) {
-      if (!row || row.is_dir) return;
+      if (!row) return;
       if (!this.tabManager) return;
 
+      // 무엇을 열지는 행 선택 매핑 자리가 정한다. 껍데기는 행의 종류를 보지 않는다 (FR-4, FR-6)
       let mapped = null;
-      if (this.slots && typeof this.slots.mapRowSelect === 'function') {
-        mapped = this.slots.mapRowSelect(row);
+      if (this.slots && typeof this.slots.mapRowSelection === 'function') {
+        mapped = this.slots.mapRowSelection(row);
       } else {
-        mapped = { kind: 'default', resource: { path: row.path }, title: row.name };
+        mapped = row.is_dir ? null : { kind: 'default', resource: { path: row.path }, title: row.name };
       }
 
       if (!mapped) return; // 열지 않음 (null)
