@@ -247,6 +247,42 @@ for (const kindName of ['file', 'folder', 'terminal']) {
 const compMatches = appJs.match(/(?<!typeof\s)(?:kind|\.kind)\s*[!=]==?\s*['"][a-zA-Z0-9_-]+['"]/g);
 assert(!compMatches || compMatches.length === 0, `Found forbidden kind comparison in shell/app.js: ${compMatches}`);
 
+// 세로띠 오른쪽 구분선은 버튼 배경에 덮이지 않는다.
+// border로 두면 내용 영역이 29px가 되어 30px 버튼이 반픽셀 좌표에 앉고
+// 배경이 구분선을 덮는다 (tokens.css의 아이콘 선명도 규칙도 함께 깨진다).
+const railBlock = /\.activity-rail\s*\{[^}]*\}/.exec(shellCss);
+assert(railBlock, 'shell.css must style activity-rail');
+assert(
+  !/border-right\s*:/.test(railBlock[0]),
+  '.activity-rail은 border-right로 구분선을 그리지 않는다 (버튼 배경이 덮고 아이콘이 흐려진다)'
+);
+assert(
+  /\.activity-rail::after\s*\{[^}]*\}/.test(shellCss),
+  '세로띠 구분선은 버튼 위에 얹는 ::after로 그린다'
+);
+
+// 켜짐 상태를 배경으로 나타내면 세로띠와 다른 색 상자가 아이콘 둘레에 상시로 남는다
+const railActive = /\.rail-btn\.active\s*\{[^}]*\}/.exec(shellCss);
+assert(railActive, 'shell.css must define .rail-btn.active');
+assert(
+  !/background\s*:/.test(railActive[0]),
+  '.rail-btn.active는 배경을 깔지 않는다 (세로띠와 색이 달라 보인다)'
+);
+
+// 상태 표시줄 경로는 절대 경로다 — 연결 계층은 루트 기준 상대 경로를 돌려준다
+assert(
+  appJs.includes('function toAbsolutePath'),
+  'app.js must convert the status bar path to an absolute path'
+);
+assert(
+  /msgEl\.textContent\s*=\s*toAbsolutePath\(treeModel\.cursorPath\)/.test(appJs),
+  '트리 커서 경로도 절대 경로로 표시한다'
+);
+assert(
+  /toAbsolutePath\(activeTab\.resource\.path\)/.test(appJs),
+  '활성 탭 대상도 절대 경로로 표시한다'
+);
+
 console.log('  -> TE-035 & TE-036 passed');
 
 // -------------------------------------------------------------
@@ -287,5 +323,37 @@ assert.strictEqual(mountedRec.isActive, true, 'mounted view must be active');
 vm.dispose();
 
 console.log('  -> ViewManager mountView() passed');
+
+// -------------------------------------------------------------
+// 8. 상태 표시줄의 절대 경로 변환
+// -------------------------------------------------------------
+console.log('8. 상태 표시줄 절대 경로 변환');
+// app.js는 IIFE라 소스에서 함수만 떼어 같은 규칙으로 판정한다
+const absSrc = /function toAbsolutePath\(target\) \{[\s\S]*?\n  \}/.exec(appJs);
+assert(absSrc, 'toAbsolutePath 본문을 찾을 수 있다');
+
+const makeAbs = (rootPath) => {
+  const body = absSrc[0].replace(
+    /const root = \(treeModel && treeModel\.rootPath\) \|\| '';/,
+    `const root = ${JSON.stringify(rootPath)};`
+  );
+  return new Function(`${body}; return toAbsolutePath;`)();
+};
+
+const winAbs = makeAbs('D:\\projects\\demo');
+assert.strictEqual(winAbs('docs\\spec.md'), 'D:\\projects\\demo\\docs\\spec.md', '상대 경로에 루트를 붙인다');
+assert.strictEqual(winAbs(''), 'D:\\projects\\demo', '빈 경로는 루트 자신이다');
+assert.strictEqual(winAbs('.'), 'D:\\projects\\demo', 'relpath가 돌려주는 .도 루트로 본다');
+assert.strictEqual(winAbs('E:\\other\\x.md'), 'E:\\other\\x.md', '이미 절대 경로면 그대로 둔다');
+assert.strictEqual(winAbs('\\\\server\\share\\a.md'), '\\\\server\\share\\a.md', 'UNC 경로도 그대로 둔다');
+
+const posixAbs = makeAbs('/home/u/demo');
+assert.strictEqual(posixAbs('docs/spec.md'), '/home/u/demo/docs/spec.md', '구분자는 루트를 따른다');
+assert.strictEqual(posixAbs('/etc/hosts'), '/etc/hosts', 'POSIX 절대 경로도 그대로 둔다');
+
+const noRoot = makeAbs('');
+assert.strictEqual(noRoot('a.md'), 'a.md', '루트가 없으면 받은 것을 그대로 둔다');
+
+console.log('  -> 절대 경로 변환 passed');
 
 console.log('\nAll Phase 7 Shell unit tests passed successfully!');

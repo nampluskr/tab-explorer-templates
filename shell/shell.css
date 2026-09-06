@@ -218,17 +218,33 @@ button {
 }
 
 /* 2. 세로 띠 (구역 2) */
+/* 오른쪽 구분선을 border가 아니라 겹쳐 그리는 선으로 둔다.
+   border로 두면 내용 영역이 29px가 되어 30px인 버튼이 x=-0.5px에 놓인다.
+   그러면 (1) 버튼 배경이 구분선을 덮어 선이 잘리고
+        (2) 아이콘이 반픽셀 좌표에 앉아 흐려진다(tokens.css의 아이콘 선명도 규칙).
+   선을 위에 얹으면 내용 영역이 30px 그대로라 버튼이 x=0에 정확히 앉는다. */
 .activity-rail {
   width: var(--rail-width);
   height: 100%;
   background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  position: relative;
   z-index: 5;
+}
+
+.activity-rail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--color-border);
+  pointer-events: none;
 }
 
 .rail-top, .rail-bottom {
@@ -247,9 +263,15 @@ button {
   color: var(--color-muted);
 }
 
-.rail-btn:hover, .rail-btn.active {
+/* 켜짐은 글자색으로만 나타낸다. 배경을 상시로 깔면 세로띠와 다른 색 상자가
+   아이콘 둘레에 남고 오른쪽 구분선까지 끊어 보인다 (v0.1은 hover에만 배경을 준다) */
+.rail-btn:hover {
   color: var(--color-text);
   background: var(--color-hover);
+}
+
+.rail-btn.active {
+  color: var(--color-text);
 }
 
 /* 상태표시줄 토글 아이콘: 탐색기 아이콘(icon-sidebar)을 반시계 방향 90도 회전하여 하단 바 형태 구현 */

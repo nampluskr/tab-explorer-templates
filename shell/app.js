@@ -1048,6 +1048,21 @@
     infoEl.textContent = formatRuntimeText(null);
   }
 
+  // 연결 계층은 루트 경계를 지키려고 루트 기준 상대 경로를 돌려준다.
+  // 상태 표시줄은 사람이 읽는 곳이므로 루트를 붙여 절대 경로로 보여 준다.
+  function toAbsolutePath(target) {
+    const root = (treeModel && treeModel.rootPath) || '';
+    if (!target) return root;
+    // 이미 절대 경로면 그대로 둔다 (드라이브 문자 · UNC · POSIX 루트)
+    if (/^([a-zA-Z]:[\\/]|\\\\|\/)/.test(target)) return target;
+    if (!root) return target;
+
+    const separator = root.indexOf('\\') >= 0 ? '\\' : '/';
+    const trimmedRoot = root.replace(/[\\/]+$/, '');
+    const relative = String(target).replace(/^[\\/]+/, '');
+    return (relative === '.' || relative === '') ? trimmedRoot : trimmedRoot + separator + relative;
+  }
+
   function updateStatus() {
     const msgEl = document.getElementById('status-message');
     if (!msgEl) return;
@@ -1055,9 +1070,11 @@
     // TE-033: 활성 탭이 있으면 활성 탭 대상을 우선 표시, 없으면 트리 커서/루트 표시
     const activeTab = tabManager ? tabManager.getActiveTab() : null;
     if (activeTab && activeTab.resource) {
-      msgEl.textContent = activeTab.resource.path || activeTab.title || 'Ready';
+      msgEl.textContent = activeTab.resource.path
+        ? toAbsolutePath(activeTab.resource.path)
+        : (activeTab.title || 'Ready');
     } else if (treeModel && treeModel.cursorPath) {
-      msgEl.textContent = treeModel.cursorPath;
+      msgEl.textContent = toAbsolutePath(treeModel.cursorPath);
     } else if (treeModel && treeModel.rootPath) {
       msgEl.textContent = treeModel.rootPath;
     } else {
@@ -1224,6 +1241,7 @@
     formatRuntimeText: formatRuntimeText,
     syncRuntimeInfo: syncRuntimeInfo,
     updateStatus: updateStatus,
+    toAbsolutePath: toAbsolutePath,
     persistShell: persistShell,
     initializeSettings: initializeSettings,
     slots: slotRegistry,

@@ -573,3 +573,21 @@
   - 탭: `padding-left 4px` · `padding-right 2px` · 높이 26px · 최대폭 180px
 - 검증: Electron에서 `getBoundingClientRect`와 `getComputedStyle`로 실측했고, `.sidebar-actions` 수정 전 3.9 → 수정 후 0으로 바뀌는 것을 확인했다. pywebview 갈래를 띄워 화면으로도 확인했다. Node 7종 + Python 36건 전건 통과.
 - 남긴 것(요청 범위 밖): `.tab-list { gap: 2px }`는 v0.1의 `var(--space-1)`(4px)과 다르고 토큰도 거치지 않는다. `.tab-bar`의 위쪽 여백 4px 누락, v0.1에 없는 `border-bottom`, 닫기 버튼 구조 차이도 남아 있다. 요청이 세 항목뿐이라 손대지 않았고 TE-048에서 판정할 몫이다.
+
+### 계획 외 개선 — 세로띠 구분선 잘림 · 아이콘 둘레 배경 · 상태 표시줄 절대 경로
+
+- 요청: (1) 세로띠의 탐색기 토글과 상태표시줄 토글 아이콘 배경이 달라 세로띠 우측 테두리선이 잘린다 (2) 아이콘 내부 색깔도 세로띠 영역과 차이가 난다 (3) 상태 표시줄 경로는 절대 경로여야 한다.
+- 원인:
+  1. `.activity-rail`이 `border-right: 1px`로 구분선을 그려 내용 영역이 29px가 되는데 `.rail-btn`은 30px이었다. 실측하면 버튼이 **x = −0.5px**에 앉아 오른쪽 0.5px가 구분선 위를 덮었다. 같은 반픽셀 좌표 때문에 `tokens.css`의 아이콘 선명도 규칙(아이콘 상자는 정수 좌표에 놓여야 한다)도 함께 깨지고 있었다.
+  2. `.rail-btn.active`가 `background: var(--color-hover)`를 깔고 두 버튼이 항상 `active`로 그려져, 세로띠 배경과 다른 색 상자가 아이콘 둘레에 상시로 남았다. v0.1은 세로띠 버튼에 `active` 상태 자체가 없고 배경을 hover에만 준다(`explorer_pywebview/shell/app.js` 407~408행, `structure.css` 34·37행).
+  3. 연결 계층이 루트 경계를 지키려고 `os.path.relpath`로 **루트 기준 상대 경로**를 돌려주는데(`bridge.py` 134행), 상태 표시줄이 그 값을 그대로 출력하고 있었다.
+- 조치:
+  1. 구분선을 `border-right`에서 버튼 위에 얹는 `.activity-rail::after`(1px 절대 배치)로 바꿨다. 내용 영역이 30px 그대로라 버튼이 x = 0에 정확히 앉는다.
+  2. `.rail-btn.active`에서 배경을 걷어내고 글자색만 남겼다. 배경은 `:hover`에만 붙는다.
+  3. `shell/app.js`에 `toAbsolutePath()`를 더해 루트를 붙여 표시한다. 이미 절대 경로(드라이브 문자 · UNC · POSIX 루트)면 그대로 두고, 빈 경로와 `.`은 루트 자신으로 본다. 구분자는 루트의 것을 따른다.
+- 결과: 실측으로 확인했다.
+  - 세로띠 폭 30px 유지, 버튼 x = 0 · 폭 30px, 버튼 배경 `rgba(0,0,0,0)`
+  - 구분선 픽셀을 x = 29에서 y = 50 · 62 · 200 · 400 · 600 · 745 · 758로 훑어 전부 `RGB(111,118,129)` — 두 토글 아이콘 줄에서도 끊기지 않는다
+  - 탐색기 토글 둘레(x = 15, y = 62)가 세로띠 배경과 같은 `RGB(23,27,34)`
+  - 상태 표시줄이 `D:\projects\tab_explorer_templates\CLAUDE.md`로 절대 경로를 표시한다
+- 검증: `tests/test_shell_phase_seven.js`에 셋을 판정하는 시험을 더했다 — 세로띠가 `border-right`를 쓰지 않고 `::after`로 그리는지, `.rail-btn.active`에 배경이 없는지, 상태 표시줄이 `toAbsolutePath`를 거치는지. `toAbsolutePath` 자체도 Windows · UNC · POSIX · 루트 없음까지 여덟 경우로 시험한다. 고친 곳을 하나씩 되돌리는 역검증으로 세 시험이 실제로 잡는 것을 확인했다. Node 7종 + Python 36건 전건 통과, pywebview 갈래 화면 확인.
