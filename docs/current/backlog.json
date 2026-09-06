@@ -32,7 +32,7 @@
   "tasks": [
     {
       "id": "TE-001",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "저장소 골격 세우기",
@@ -42,11 +42,11 @@
       "note": "껍데기를 갈래 폴더 밖으로 끌어올린다 (D-12)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-002",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "빌드 없는 로드 경로 구성",
@@ -56,11 +56,11 @@
       "note": "실행 환경 둘만 고정하고 프레임워크는 넣지 않는다 (D-13)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-003",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "디자인 토큰 파일 신규 작성",
@@ -70,11 +70,11 @@
       "note": "파일은 새로 쓰고 값만 옮겨 적는다 (D-10). structure.css는 가져오지 않는다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-004",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "픽셀 격자 정렬 규칙 고정",
@@ -84,11 +84,11 @@
       "note": "규칙을 토큰 파일 주석으로 함께 옮긴다. 홀수로 바꾸면 아이콘이 흐려진다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-005",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "아이콘 자산 반입과 아이콘 테마 셋",
@@ -98,11 +98,11 @@
       "note": "도형과 외부 자산이라 파일로 가져온다. 기본값은 Simple",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-006",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "세 테마와 전환",
@@ -112,11 +112,11 @@
       "note": "밝기 순서대로 이름을 둔다 (D-10)",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-007",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "껍데기 뼈대 — 다섯 구역 자리",
@@ -126,11 +126,11 @@
       "note": "이 단계의 목적은 눈으로 볼 수 있는 바닥을 만드는 것이다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-008",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "host_pywebview 최소 실행 경로",
@@ -140,11 +140,11 @@
       "note": "NumPy를 같은 프로세스에서 부르는 갈래",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-009",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "host_electron 최소 실행 경로",
@@ -154,11 +154,11 @@
       "note": "껍데기와 디자인 파일은 pywebview 갈래와 같은 것을 로드한다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-010",
-      "status": "todo",
+      "status": "done",
       "priority": "high",
       "category": "P1",
       "title": "갈래별 실행 안내 문서",
@@ -168,7 +168,7 @@
       "note": "의존성 설치와 실행 명령. 조합키 표는 P7 뒤에 채운다",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-011",

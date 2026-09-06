@@ -1,0 +1,225 @@
+/* shell/shell.css — 껍데기 레이아웃 및 5개 구역 스타일 */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--font-size)/var(--line-height) var(--font-ui);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 껍데기 최상위 그리드: 메뉴줄(30px) - 본체(1fr) - 상태표시줄(30px) */
+.shell-root {
+  display: grid;
+  grid-template-rows: var(--menu-height) minmax(0, 1fr) var(--status-height);
+  height: 100%;
+  width: 100%;
+}
+
+.shell-root.status-hidden {
+  grid-template-rows: var(--menu-height) minmax(0, 1fr) 0;
+}
+
+.shell-root.zen {
+  grid-template-rows: 0 minmax(0, 1fr) 0;
+}
+
+/* 1. 메뉴 줄 (구역 1) */
+.menu-bar {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  height: var(--menu-height);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+  z-index: 10;
+}
+
+.menu-slot {
+  position: relative;
+}
+
+.menu-button, .icon-btn, .window-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--menu-height);
+  min-width: var(--menu-height);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text);
+}
+
+.menu-button:hover, .icon-btn:hover, .window-btn:hover {
+  background: var(--color-hover);
+}
+
+.drag-region {
+  flex: 1;
+  height: 100%;
+}
+
+.window-controls {
+  display: flex;
+  height: 100%;
+}
+
+/* 본체 구역 (세로 띠 + 탐색기 + 분할 손잡이 + 보기 영역) */
+.shell-body {
+  grid-row: 2;
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* 2. 세로 띠 (구역 2) */
+.activity-rail {
+  width: var(--rail-width);
+  height: 100%;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.rail-top, .rail-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.rail-btn {
+  width: var(--rail-width);
+  height: var(--rail-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+}
+
+.rail-btn:hover, .rail-btn.active {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+/* 3. 탐색기 (구역 3) */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: 140px;
+  height: 100%;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  display: none;
+}
+
+.sidebar-header {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 구분 스플리터 */
+.splitter {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  margin-left: -2px;
+  z-index: 6;
+}
+
+.splitter:hover, .splitter.dragging {
+  background: var(--color-selected);
+}
+
+/* 4. 보기 영역 (구역 4) */
+.workspace {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 5. 상태 표시줄 (구역 5) */
+.status-bar {
+  grid-row: 3;
+  height: var(--status-height);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-2);
+  font-size: 11px;
+  color: var(--color-muted);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.status-left, .status-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* SVG 아이콘 공통 */
+.icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke);
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline-block;
+  vertical-align: middle;
+}

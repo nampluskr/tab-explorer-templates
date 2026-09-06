@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "shell": {
+    "theme": "gray",
+    "icon_theme": "simple",
+    "sidebar_width": 280,
+    "sidebar_collapsed": false,
+    "root_path": "",
+    "recent_folders": []
+  }
+}
