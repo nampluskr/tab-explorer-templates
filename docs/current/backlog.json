@@ -648,7 +648,7 @@
     },
     {
       "id": "TE-045",
-      "status": "todo",
+      "status": "done",
       "priority": "medium",
       "category": "P9",
       "title": "실물 앱 요구 셋 시험용 앱",
@@ -658,7 +658,7 @@
       "note": "markdown_browser가 이미 갖춘 셋. BRIEF 완료 조건 4번",
       "parent": null,
       "deps": [],
-      "done_at": null
+      "done_at": "2026-09-06"
     },
     {
       "id": "TE-046",

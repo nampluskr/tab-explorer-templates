@@ -575,6 +575,15 @@
 
     bindEditorEvents();
     mountActiveViews();
+    notifyRendered('editor');
+  }
+
+  // 껍데기는 다시 그릴 때 화면을 통째로 새로 만든다. 그래서 여는 경로 자리(FR-9)로
+  // 자기 버튼을 얹은 앱은 그 버튼을 잃는다. 다시 그렸다는 사실만 알려 주고,
+  // 무엇을 다시 붙일지는 앱이 정한다 — 껍데기는 앱의 UI를 알지 못한다.
+  function notifyRendered(area) {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+    window.dispatchEvent(new CustomEvent('shell-rendered', { detail: { area: area } }));
   }
 
   function bindEditorEvents() {
@@ -764,6 +773,8 @@
     if (selectedRow && typeof selectedRow.scrollIntoView === 'function') {
       selectedRow.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
+
+    notifyRendered('tree');
   }
 
   function bindTreeEvents() {
